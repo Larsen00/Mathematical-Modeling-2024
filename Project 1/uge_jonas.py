@@ -11,11 +11,16 @@ import numpy as np
 import time 
 import scipy
 import matplotlib.pyplot as plt
+import os
 #%%
 
-# impotere 
+# impotere
+working_dir = os.getcwd() 
+print(working_dir)
+#%%
+
 folder = "C:/Users/jonas/OneDrive - Danmarks Tekniske Universitet/DTU/Matematisk Modelering/Opgaver/"
-paths = glob.glob(folder + 'toyProblem_F22/*.png')
+paths = glob.glob(working_dir + 'toyProblem_F22/*.png')
 images = [color.rgb2gray(io.imread(path)) for path in paths]
 
 #%%
