@@ -11,4 +11,3 @@ Lille guide til hvordan man kan burge git. VS code har git indbygget ude i siden
 * upload ens kode 
 > git push
 
-vjorjgåowj
