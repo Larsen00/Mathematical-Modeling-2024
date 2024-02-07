@@ -15,20 +15,23 @@ import matplotlib.pyplot as plt
 import os
 
 # Get the current working directory
-working_dir = os.getcwd() 
-print(working_dir)  # Print the working directory
+working_dir = os.getcwd()
 
 # Define the path to the .png files in the 'toyProblem_F22' subdirectory
-paths = glob.glob(working_dir + 'toyProblem_F22/*.png')
+paths = glob.glob(working_dir + '/toyProblem_F22/*.png')
+assert len(paths) == 64
 
 # Read each image file, convert it to grayscale, and store it in the 'images' list
 images = [color.rgb2gray(io.imread(path)) for path in paths]
 
+#%%
 # Loop over each image in the 'images' list
+'''
 for img in images:
     io.imshow(img)  # Display the image
     io.show()  # Show the image
     time.sleep(1)  # Pause for 1 second before displaying the next image
+'''
 
 # Problem 2.1
 
@@ -84,3 +87,5 @@ for i in range(0,len(Vt)):
     
     plt.show()
 
+#%%
+# Problem 2.3
