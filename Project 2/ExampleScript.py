@@ -11,10 +11,9 @@ import os
 import helpFunctions as hf 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.pyplot import imread
-dirIn = f'{os.getcwd()}/data'  
+from matplotlib.pyplot import imread 
 ## Example of loading a multi spectral image
-
+dirIn = rf'{os.getcwd()}/Mathematical-Modeling-2024/Project 2/data/'  
 
 multiIm, annotationIm = hf.loadMulti('multispectral_day20.mat' , 'annotation_day20.png', dirIn)
 
