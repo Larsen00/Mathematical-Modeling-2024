@@ -3,7 +3,7 @@
 # 20230221
 # Adapted from work by Anders Bjorholm Dahl
 
-# Folder where your data files are placed
+
 
 
 
@@ -12,7 +12,9 @@ import helpFunctions as hf
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
-dirIn = f'{os.getcwd()}/data'  
+
+# Folder where your data files are placed
+dirIn = rf'{os.getcwd()}/Mathematical-Modeling-2024/Project 2/data/'  
 ## Example of loading a multi spectral image
 
 
