@@ -1,22 +1,21 @@
 import sympy as s
 from sympy.plotting import plot
+import matplotlib.pyplot as plt
+import numpy as np
 
-
-'''
-# SET PATH FOR OSX USERS
-if sys.platform == 'darwin':
-    sys.path.append('../code')
-    
-LOAD_MAIN_FLAG = False
-if LOAD_MAIN_FLAG:
-    from main import test_an_expression
-'''
-
-f = lambda x, mu : s.exp(-(x-mu)**2/(2*6.7**2))/(6.7*s.sqrt(2*s.pi))
-    
-
-
-
-p1 = plot(f(s.symbols('x'), 175.5), show=False)
-p2 = plot(f(s.symbols('x'), 162.9), show=False)
-p1.show()
+#%%  
+# 2. Plot in a coordinate system the probability density function (PDF) for the two values of μ.
+# define x range
+x_lower, x_upper = 140, 250
+x = np.arange(x_lower, x_upper,0.1)
+# define mu values
+mu1 = 175.5
+mu2 = 162.9
+# define PDF
+f1 = lambda x: np.exp(-(x-mu1)**2/(2*(6.7**2)))/(6.7*np.sqrt(2*np.pi))
+f2 = lambda x: np.exp(-(x-mu2)**2/(2*(6.7**2)))/(6.7*np.sqrt(2*np.pi))
+# plot PDF
+plt.plot(x, f1(x))
+plt.plot(x, f2(x))
+plt.xlim(x_lower, x_upper)
+plt.show()
