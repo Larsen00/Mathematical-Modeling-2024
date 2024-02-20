@@ -4,15 +4,15 @@
 # Adapted from work by Anders Bjorholm Dahl
 
 # Folder where your data files are placed
-dirIn = 'C:/Users/anym/Downloads/data/'
 
 
+
+import os
 import helpFunctions as hf 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
-    
-
+dirIn = f'{os.getcwd()}/data'  
 ## Example of loading a multi spectral image
 
 
