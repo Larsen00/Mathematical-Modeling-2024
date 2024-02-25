@@ -13,7 +13,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread 
 ## Example of loading a multi spectral image
-dirIn = rf'{os.getcwd()}/data/'  
+
+# if operating system is windows, the working directory is has appended '/Project 2'
+workingDir = os.getcwd()
+if os.name == 'nt':
+    workingDir += '/Project 2'
+
+dirIn = workingDir + '/data/'  
 
 multiIm, annotationIm = hf.loadMulti('multispectral_day20.mat' , 'annotation_day20.png', dirIn)
 
@@ -50,6 +56,7 @@ plt.show()
 # Det er mean value pr layer
 plt.plot(np.mean(meatPix,0),'b')
 plt.plot(np.mean(fatPix,0),'r')
+plt.legend(['Meat', 'Fat'])
 plt.show()
 
 
@@ -59,7 +66,7 @@ plt.show()
 
 # Here is an example - last argument tells the function to plot the histogram for meat and fat
 h = hf.showHistograms(multiIm, annotationIm[:,:,2:3], 2, 1)
-# x akse er antal pixels
+# x akse er intensitet,
 # y akse er antallet af pixel med denne intensitet
 
 
