@@ -84,7 +84,7 @@ for i in range (0, 19):
 # the 19 layer dont have a threshold value
     
 # plotting the gaussian distribution of meat and fat pixels for all spectral bands
-for i in range(0, 19, 19):
+for i in range(0, 19, 2):
     print(f'Threshold value for spectral band {i+1} is: {t[i]}')
     x = np.linspace(0,100,100)
     plot1=plt.plot(x,norm.pdf(x,mean_meat[i], std_meat[i]))
@@ -128,19 +128,10 @@ print(f'The spectral band with the best discriminative properties for meat and f
 imRGB = imread(dirIn + 'color_day01.png')
 
 
-
-# # Concatenate the pixel coordinates to a matrix
-# pixId = np.stack((fatR, fatC), axis=1)
-
-# # Make the new images
-# rgbOut = hf.setImagePix(imRGB, pixId)
-# plt.imshow(rgbOut)
-# plt.show()
-
-print(multiIm.shape)
-
 # Create a new array where values greater than 't' are assigned 1, and others are assigned 2
-clasified_image = np.where(multiIm[:,:,best_band] < t[best_band], 2, 1)
+clasified_image = np.where(multiIm[:,:,best_band] < t[best_band], 0, 1)
 plt.imshow(clasified_image)
 plt.title('Classified image of the salami for day 1 using layer {best_band+ 1}')
 plt.show()
+
+#%%
