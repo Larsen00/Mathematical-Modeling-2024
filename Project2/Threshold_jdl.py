@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib.pyplot import imread 
 from scipy.stats import norm
 ## Example of loading a multi spectral image
-dirIn = rf'{os.getcwd()}/Project 2/data/'  
+dirIn = rf'{os.getcwd()}/Project2/data/'  
 
 #%%
 # dispalying sementation of day 01
