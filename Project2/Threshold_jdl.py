@@ -74,10 +74,18 @@ mean_fat = np.mean(fatPix, 0)
 std_meat = np.std(meatPix, 0)
 std_fat = np.std(fatPix, 0)
 
-# finds thredsholds for all spectral bands
-for i in range (0, 19):
-    i_point = intersections(mean_meat[i], std_meat[i], mean_fat[i], std_fat[i])
+# finds thredsholds for all spectral bands using diffrence varince
+# for i in range (0, 19):
+#     i_point = intersections(mean_meat[i], std_meat[i], mean_fat[i], std_fat[i])
+#     t.append(i_point)
+
+def threshold_same_variance(m1, m2):
+    return (m1 + m2) / 2
+
+for i in range(0, 19):
+    i_point = threshold_same_variance(mean_fat[i], mean_meat[i])
     t.append(i_point)
+
 
 ## NOTES ##
 # meat is less than threshold, fat is greater than threshold
@@ -104,6 +112,8 @@ for band in range(0, 19):
         error_rate_meat.append(sum(1 for i in meatPix[:, band] if i > t[band]))
         error_rate_fat.append(sum(1 for i in fatPix[:, band] if i < t[band]))
 
+    
+
 # plotting the error rate for each spectral band
 plt.plot(error_rate_meat, 'b')
 plt.plot(error_rate_fat, 'r')
@@ -117,7 +127,7 @@ for i in range(0, 19):
     if t[i] is not None:
         mean_error_rate.append((error_rate_meat[i] + error_rate_fat[i]) / 2)
 
-best_band = mean_error_rate.index(min(mean_error_rate))
+best_band = mean_error_rate.index(min(mean_error_rate)) #14 when using same variance
 print(f'The spectral band with the best discriminative properties for meat and fat is: {best_band+1}')
 ## NOTES
 # Det bedste band er layer 1
