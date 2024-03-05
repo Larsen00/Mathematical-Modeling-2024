@@ -13,9 +13,6 @@ dirIn = rf'{os.getcwd()}/Project2/data/'
 # Load multi spectral image and annotations from day 1
 multiIm, annotationIm = hf.loadMulti('multispectral_day01.mat' , 'annotation_day01.png', dirIn)
 
-# Matrix of fat and meat repsectively
-fat_mat = multiIm[annotationIm[:,:,1] == 1]
-meat_mat = multiIm[annotationIm[:,:,2] == 1]
 
 # Calculates the Covariance matrix for given matrix
 def calculateCovarianceMatrix(matrix):
@@ -77,5 +74,42 @@ def calculateErrorRate(matrix1, matrix2, p1, p2):
     return (error1+error2)/total, error1/matrix1.shape[0], error2/matrix2.shape[0]
 
 
-errorrate, error_fat, error_meat = calculateErrorRate(fat_mat, meat_mat, 0.30, 0.70)
+errorrate, error_fat, error_meat = calculateErrorRate(fatPix, meatPix, 0.30, 0.70)
 print(f'total error rate: {errorrate}, \nerror rate for fat: {error_fat}, \nerror rate for meat: {error_meat}')
+
+def calculateErrorWhole(multiIm,matrix1, matrix2, p1, p2):
+    '''
+    Calculate the error rate (disagreement between the model and the annotations) for the training set.
+    Input:  matrix1 is the fat pixels, 
+            matrix2 is the meat pixels, 
+            p1 and p2 are the prior probilities for fat and meat pixels.
+    Return: total error rate, error rate for matrix1 and error rate for matrix2.
+    '''
+    error1 = 0
+    error2 = 0
+    ## Iniatilize binary image
+    imageclassified = np.zeros((multiIm.shape[0],multiIm.shape[1]))
+    
+    # finds the pooled covariance matrix
+    sigma = calculatePooledCorvarianceMatrix(matrix1,matrix2)
+
+    # finds the mean of the two matrixes for each layer
+    mu1 = np.mean(matrix1, axis=0).T
+    mu2 = np.mean(matrix2, axis=0).T
+    mask = np.sum(annotationIm, axis=2)
+    x_cord, y_cord = (np.where(mask))
+    for i,j in zip(x_cord,y_cord):
+        x=multiIm[i,j,:].T
+        prob1 = S(x, mu1, sigma, p1)
+        prob2 = S(x, mu2, sigma, p2)
+        if prob2 < prob1:
+            imageclassified[i,j] = 1  
+        else: 
+            imageclassified[i,j] = 2
+    # returns classified image
+    plt.imshow(imageclassified)
+    plt.show()
+
+    return imageclassified
+imageclassified = calculateErrorWhole(multiIm,fatPix, meatPix, 0.30, 0.70)
+
