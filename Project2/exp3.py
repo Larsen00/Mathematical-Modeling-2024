@@ -34,15 +34,19 @@ def finds_best_band_using_threshold(fatPix, meatPix):
             mean_error_rate.append((error_rate_meat[i] + error_rate_fat[i]) / 2)
 
     best_band = mean_error_rate.index(min(mean_error_rate))
-    return best_band, t[best_band]
+    return best_band, t[best_band], mean_fat[best_band] > mean_meat[best_band]
 
 
 
-def cal_thres_errorrate(band, threshold):
+def cal_thres_errorrate(fatPix, meatPix, band, threshold, mean_meat_less_mean_fat):
 
     # recall meat is less than threshold, fat is greater than threshold
-    thres_errors_fat = np.sum(fatPix[:, band] < threshold)
-    thres_errors_meat = np.sum(meatPix[:, band] > threshold)
+    if mean_meat_less_mean_fat:
+        thres_errors_fat = np.sum(fatPix[:, band] < threshold)
+        thres_errors_meat = np.sum(meatPix[:, band] > threshold)
+    else :
+        thres_errors_fat = np.sum(fatPix[:, band] > threshold)
+        thres_errors_meat = np.sum(meatPix[:, band] < threshold)    
     return (thres_errors_fat + thres_errors_meat) / (fatPix.shape[0] + meatPix.shape[0])
 
 
@@ -56,6 +60,7 @@ average_error_rates_thres = []
 error_rates_thres = []
 
 
+best_bands = []
 for training_image in days:
 
     # loads the training image
@@ -63,9 +68,9 @@ for training_image in days:
     [fatPix_ti, _, _] = hf.getPix(multiIm_ti, annotationIm_ti[:,:,1])
     [meatPix_ti, _, _] = hf.getPix(multiIm_ti, annotationIm_ti[:,:,2])
 
-    best_bands = []
-    band, threshold = finds_best_band_using_threshold(fatPix_ti, meatPix_ti)
+    band, threshold, mean_meat_less_mean_fat = finds_best_band_using_threshold(fatPix_ti, meatPix_ti)
     best_bands.append(band)
+
 
     error_sum = 0
     errors = []
@@ -104,9 +109,9 @@ for training_image in days:
 
         #### USing a threshold
         
-        error_rate_thres = cal_thres_errorrate(band, threshold)
+        error_rate_thres = cal_thres_errorrate(fatPix, meatPix, band, threshold, mean_meat_less_mean_fat)
         error_sum_thres += error_rate_thres 
-        errors_thres.append(error_sum_thres)
+        errors_thres.append(error_rate_thres)
         
 
     # calculate the average error rate
@@ -141,6 +146,7 @@ plt.show()
 # find the best day for training, according to the average error rate
 best_day_thres = average_error_rates_thres.index(min(average_error_rates_thres))
 print(f'Best day for training using threshold: {days[best_day_thres]} with an average error rate of {average_error_rates_thres[best_day_thres]}')
+print(best_bands)
 
 # Plotting the error rates
 corralation_matrix_thres = np.matrix(error_rates_thres)
