@@ -27,4 +27,4 @@ height = df['height']
 f = sp.interpolate.interp1d(distances,height)
 xs = np.arange(0,79000,250) # we only want an x value every 250 metres
 interpol_heights = f(xs)
-np.savetxt('interpol_heights',interpol_heights,delimiter=',')
+np.savetxt('interpol_heights.txt',interpol_heights,delimiter=',')
