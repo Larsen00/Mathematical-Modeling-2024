@@ -20,9 +20,24 @@ K = [
 
 
 function constructA(H,K)
-    # Make a function that returns A when given H and K
+    h = length(H)
+    A = zeros(h,h)
+    for i in 1:h
+        for j in 1:3
+            if (i+j) <= h
+                A[i,i+j-1] = K[j]
+            end
+        end
+    end
+    for i in 1:h
+        for j in 1:i-1
+            A[i,j] = A[j,i]  
+        end    
+    end      
     return A
 end
+
+println(constructA(H,K))
 
 # A should be structured as follows
 A = [300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
@@ -37,11 +52,22 @@ A = [300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
        0.0    0.0    0.0    0.0    0.0    0.0    0.0   40.0  140.0  300.0
 ]
 
+[300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
+ 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0 0.0;
+ 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0;
+ 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0;
+ 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0;
+ 0.0 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0;
+ 0.0 0.0 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0;
+ 0.0 0.0 0.0 0.0 0.0 40.0 140.0 300.0 140.0 0.0;
+ 0.0 0.0 0.0 0.0 0.0 0.0 40.0 140.0 300.0 0.0;
+ 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
+
 
 function solveIP(H, K)
     h = length(H)
     myModel = Model(Cbc.Optimizer)
-    # If your want to use GLPK instead use:
+    # If your want ot use GLPK instead use:
     #myModel = Model(GLPK.Optimizer)
 
     A = constructA(H,K)
