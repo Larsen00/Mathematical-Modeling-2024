@@ -32,8 +32,14 @@ multiIm, annotationIm = hf.loadMulti('multispectral_day01.mat' , 'Annotation_day
 plt.plot(np.mean(meatPix,0),'b')
 plt.plot(np.mean(fatPix,0),'r')
 plt.legend(['Meat', 'Fat'])
-plt.show(block=False)
-plt.close()
+plt.title('Mean values for pixels with meat and fat')
+plt.xlabel('Spectral band')
+plt.ylabel('Mean pixel intensity')
+plt.show()
+
+
+
+
 
 
 mean_meat = np.mean(np.mean(meatPix,0))
@@ -92,7 +98,7 @@ for i in range(0, 19):
 # the 19 layer dont have a threshold value
     
 # plotting the gaussian distribution of meat and fat pixels for all spectral bands
-for i in range(0, 19, 2):
+for i in range(0, 19, 19):
     print(f'Threshold value for spectral band {i+1} is: {t[i]}')
     x = np.linspace(0,100,100)
     plot1=plt.plot(x,norm.pdf(x,mean_meat[i], std_meat[i]))
@@ -145,3 +151,11 @@ plt.title('Classified image of the salami for day 1 using layer {best_band+ 1}')
 plt.show()
 
 #%%
+h1 = hf.showHistograms(multiIm, annotationIm[:,:,2:3], 2, 1)
+h2 = hf.showHistograms(multiIm, annotationIm[:,:,1:2], 2, 1)
+
+plt.plot(h1[0:75,:])
+plt.plot(h2[0:75:,:])
+plt.title('Intensity of meat and fat pixels')
+plt.legend(['Meat', 'Fat'])
+plt.show()
