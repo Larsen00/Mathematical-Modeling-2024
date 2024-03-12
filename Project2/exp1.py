@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.pyplot import imread 
 from scipy.stats import norm
 
-dirIn = '/Users/estherholstoeksnebjerg/Desktop/02526 Mathematical Modeling/Mathematical-Modeling-2024/Project 2/data/'
+dirIn = rf'{os.getcwd()}/Project2/data/'  
 
 # Load multi spectral image and annotations from day 1
 multiIm, annotationIm = hf.loadMulti('multispectral_day01.mat' , 'annotation_day01.png', dirIn)

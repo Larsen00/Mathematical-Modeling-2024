@@ -41,7 +41,7 @@ A = [300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
 function solveIP(H, K)
     h = length(H)
     myModel = Model(Cbc.Optimizer)
-    # If your want ot use GLPK instead use:
+    # If your want to use GLPK instead use:
     #myModel = Model(GLPK.Optimizer)
 
     A = constructA(H,K)
