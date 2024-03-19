@@ -1,17 +1,20 @@
-using GLPK, Cbc, JuMP, SparseArrays, Ipopt
+using GLPK, Cbc, JuMP, SparseArrays, Ipopt, DelimitedFiles
 
-H = [
-10
-30
-70
-50
-70
-120
-140
-120
-100
-80
-]
+# H = [
+# 10
+# 30
+# 70
+# 50
+# 70
+# 120
+# 140
+# 120
+# 100
+# 80
+# ]
+
+H = readdlm("Project3\\interpol_heights.txt")
+
 
 
 K = [
