@@ -1,27 +1,14 @@
 using GLPK, Cbc, JuMP, SparseArrays, Ipopt, DelimitedFiles
 
-# H = [
-# 10
-# 30
-# 70
-# 50
-# 70
-# 120
-# 140
-# 120
-# 100
-# 80
-# ]
-
+# Load the heights
 H = readdlm("Project3/interpol_heights.txt")
 
-
-
+# Neighbouring removed dirt when bombing at position i
 K = [
 300 140 40
 ]
 
-
+# Construct the A matrix (Rji)
 function constructA(H,K)
     # Make a function that returns A when given H and K
     A = zeros(length(H),length(H))
@@ -37,33 +24,7 @@ function constructA(H,K)
     return A
 end
 
-# println(constructA(H,K))
-
-# A should be structured as follows
-# A = [300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
-#      140.0  300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0    0.0
-#       40.0  140.0  300.0  140.0   40.0    0.0    0.0    0.0    0.0    0.0
-#        0.0   40.0  140.0  300.0  140.0   40.0    0.0    0.0    0.0    0.0
-#        0.0    0.0   40.0  140.0  300.0  140.0   40.0    0.0    0.0    0.0
-#        0.0    0.0    0.0   40.0  140.0  300.0  140.0   40.0    0.0    0.0
-#        0.0    0.0    0.0    0.0   40.0  140.0  300.0  140.0   40.0    0.0
-#        0.0    0.0    0.0    0.0    0.0   40.0  140.0  300.0  140.0   40.0
-#        0.0    0.0    0.0    0.0    0.0    0.0   40.0  140.0  300.0  140.0
-#        0.0    0.0    0.0    0.0    0.0    0.0    0.0   40.0  140.0  300.0
-# ]
-
-[300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
- 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0 0.0;
- 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0 0.0;
- 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0 0.0;
- 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0 0.0;
- 0.0 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0 0.0;
- 0.0 0.0 0.0 0.0 40.0 140.0 300.0 140.0 40.0 0.0;
- 0.0 0.0 0.0 0.0 0.0 40.0 140.0 300.0 140.0 0.0;
- 0.0 0.0 0.0 0.0 0.0 0.0 40.0 140.0 300.0 0.0;
- 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0]
-
-
+# problem 2 
 function solveIP(H, K)
     h = length(H)
     myModel = Model(Cbc.Optimizer)
@@ -91,8 +52,8 @@ function solveIP(H, K)
     end
 end
 
-solveIP(H,K)
 
+# problem 3
 function problem3(chd, K, H)
     m = Model(Cbc.Optimizer)
 
@@ -123,4 +84,6 @@ function problem3(chd, K, H)
     end
 end
 
+
+solveIP(H,K)
 problem3(10, K, H)
