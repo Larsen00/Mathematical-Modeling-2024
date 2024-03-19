@@ -1,4 +1,4 @@
-using GLPK, Cbc, JuMP, SparseArrays, DelimitedFiles
+using GLPK, Cbc, JuMP, SparseArrays, DelimitedFiles,HiGHS
 
 # Load the heights
 H = readdlm("Project3/interpol_heights.txt")
@@ -27,7 +27,7 @@ end
 # problem 2 
 function solveIP(chd, H, K)
     n = length(H)
-    myModel = Model(Cbc.Optimizer)
+    myModel = Model(HiGHS.Optimizer)
     # If your want ot use GLPK instead use:
     #myModel = Model(GLPK.Optimizer)
 
@@ -54,7 +54,7 @@ end
 
 # problem 3
 function smooth_channel(chd, K, H)
-    m = Model(Cbc.Optimizer)
+    m = Model(HiGHS.Optimizer)
 
     n = length(H)
     A = constructA(H, K)
@@ -89,7 +89,7 @@ end
 
 function without_neighboring_boms(chd, K, H)
     # Model
-    m = Model(Cbc.Optimizer)
+    m = Model(HiGHS.Optimizer)
 
     # length of data points 
     n = length(H)
