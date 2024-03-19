@@ -1,4 +1,4 @@
-using GLPK, Cbc, JuMP, SparseArrays, Ipopt, DelimitedFiles
+using GLPK, Cbc, JuMP, SparseArrays, DelimitedFiles
 
 # Load the heights
 H = readdlm("Project3/interpol_heights.txt")
