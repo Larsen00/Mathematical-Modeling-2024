@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import radians, sin, cos, sqrt, atan2
 import scipy as sp
+import os
 
 # Function to calculate Haversine distance
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -28,3 +29,8 @@ f = sp.interpolate.interp1d(distances,height)
 xs = np.arange(0,79000,250) # we only want an x value every 250 metres
 interpol_heights = f(xs)
 np.savetxt('interpol_heights.txt',interpol_heights,delimiter=',')
+
+plt.plot(xs,f(xs))
+plt.xlabel('Distance to sea')
+plt.ylabel('Interpolated height above sea-level')
+plt.savefig(f'{os.getcwd()}/plots/channel_height.png')
