@@ -1,4 +1,4 @@
-using GLPK, Cbc, JuMP, SparseArrays, DelimitedFiles,HiGHS
+using GLPK, Cbc, JuMP, SparseArrays, DelimitedFiles,HiGHS, Ipopt
 
 # Load the heights
 H = readdlm("Project3/interpol_heights.txt")
@@ -64,7 +64,7 @@ end
 
 # problem 3
 function smooth_channel(chd, K, H)
-    m = Model(HiGHS.Optimizer)
+    m = Model(Cbc.Optimizer)
 
     n = length(H)
     A = constructA(H, K)
@@ -72,6 +72,7 @@ function smooth_channel(chd, K, H)
     @variable(m, x[1:n], Bin)
     @variable(m, z[1:n] >= 0)  
     @expression(m, R[i=1:n], sum(A[i,j] * x[j] for j=1:n))
+   
 
     # Adjust the objective to minimize the sum of z, representing the total deviation
     @objective(m, Min, sum(z[i] for i=1:n))
@@ -80,8 +81,8 @@ function smooth_channel(chd, K, H)
     @constraint(m, [i=1:n], R[i] >= H[i] + chd)
 
     # Constraints to ensure z[i] captures the absolute deviation
-    @constraint(m, [i=1:n], z[i] <= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
+    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
 
     optimize!(m)
     
@@ -127,8 +128,8 @@ function without_neighboring_boms(chd, K, H)
     @constraint(m, [i=1:n], R[i] >= H[i] + chd)
 
     # Constraints to ensure z[i] captures the absolute deviation
-    @constraint(m, [i=1:n], z[i] <= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
+    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
     @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
 
     optimize!(m)
@@ -157,7 +158,7 @@ end
 
 function alterK(chd, K1, K2, K3, H)
     # Model
-    m = Model(HiGHS.Optimizer)
+    m = Model(Ipopt.Optimizer)
 
     # length of data points 
     n = length(H)
@@ -166,12 +167,9 @@ function alterK(chd, K1, K2, K3, H)
     A3 = constructA(H, K3)
 
     # Variables
-    @variable(m, x[1:n], Bin)
-    @variable(m, b1[1:n], Bin)
-    @variable(m, b2[1:n], Bin)
-    @variable(m, b3[1:n], Bin)
+    @variable(m, x[1:n, 1:3], Bin)
     @variable(m, z[1:n] >= 0)  
-    @expression(m, R[i=1:n], sum(A1[i,j]*x[j]*b1[j] + A2[i,j]*x[j]*b2[j] + A3[i,j]*x[j]*b3[j] for j=1:n))
+    @expression(m, R[i=1:n], sum(A1[i,j]*x[j,1] + A2[i,j]*x[j,2] + A3[i,j]*x[j,3] for j=1:n))
 
     # Adjust the objective to minimize the sum of z, representing the total deviation
     @objective(m, Min, sum(z[i] for i=1:n))
@@ -180,8 +178,8 @@ function alterK(chd, K1, K2, K3, H)
     @constraint(m, [i=1:n], R[i] >= H[i] + chd)
 
     # Constraints to ensure z[i] captures the absolute deviation
-    @constraint(m, [i=1:n], z[i] <= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
+    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
     @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
     @constraint(m, [i=1:n], b1[i] + b2[i] + b3[i] <= 1)
 
@@ -210,10 +208,10 @@ end
 
 
 # solveIP(10 ,H,K)
-# smooth_channel(10, K, H)
-# without_neighboring_boms(10, K, H)
+smooth_channel(10, K, H)
+without_neighboring_boms(10, K, H)
 
 K2 = [500 230 60]
 K3 = [1000 400 70]
 
-alterK(10, K, K2, K3, H)
+# alterK(10, K, K2, K3, H)
