@@ -64,7 +64,7 @@ end
 
 # problem 3
 function smooth_channel(chd, K, H)
-    m = Model(Cbc.Optimizer)
+    m = Model(HiGHS.Optimizer)
 
     n = length(H)
     A = constructA(H, K)
