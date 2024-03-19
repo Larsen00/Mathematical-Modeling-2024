@@ -110,8 +110,7 @@ function problem3(chd, K, H)
     @constraint(m, [i=1:n], R[i] >= H[i] + chd)
 
     # Constraints to ensure z[i] captures the absolute deviation
-    @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], z[i] >= - (R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] == R[i] - (H[i] + chd))
 
     optimize!(m)
     
