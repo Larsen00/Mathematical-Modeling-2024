@@ -46,6 +46,16 @@ function solveIP(chd, H, K)
         println("Objective value: ", JuMP.objective_value(myModel))
         println("x = ", JuMP.value.(x))
         println("R = ", JuMP.value.(R))
+        f1 = open("Project3/res/p2_X.txt", "w")
+        f2 = open("Project3/res/p2_R.txt", "w")
+        XX = JuMP.value.(x)
+        RR = JuMP.value.(R)
+        for i in 1:n
+            println(f1, XX[i])
+            println(f2, RR[i])
+        end
+        close(f1)
+        close(f2)
     else
         println("Optimize was not succesful. Return code: ", termination_status(myModel))
     end
@@ -79,6 +89,16 @@ function smooth_channel(chd, K, H)
         println("Objective value: ", JuMP.objective_value(m))
         println("x = ", JuMP.value.(x))
         println("R = ", JuMP.value.(R))
+        f1 = open("Project3/res/p4_X.txt", "w")
+        f2 = open("Project3/res/p4_R.txt", "w")
+        XX = JuMP.value.(x)
+        RR = JuMP.value.(R)
+        for i in 1:n
+            println(f1, XX[i])
+            println(f2, RR[i])
+        end
+        close(f1)
+        close(f2)
     else
         println("Optimization was not successful. Return code: ", termination_status(m))
     end
@@ -117,12 +137,22 @@ function without_neighboring_boms(chd, K, H)
         println("Objective value: ", JuMP.objective_value(m))
         println("x = ", JuMP.value.(x))
         println("R = ", JuMP.value.(R))
+        f1 = open("Project3/res/p5_X.txt", "w")
+        f2 = open("Project3/res/p5_R.txt", "w")
+        XX = JuMP.value.(x)
+        RR = JuMP.value.(R)
+        for i in 1:n
+            println(f1, XX[i])
+            println(f2, RR[i])
+        end
+        close(f1)
+        close(f2)
     else
         println("Optimization was not successful. Return code: ", termination_status(m))
     end
 end
 
 
-solveIP(chd,H,K)
-# smooth_channel(10, K, H)
-# without_neighboring_boms(10, K, H)
+solveIP(10 ,H,K)
+smooth_channel(10, K, H)
+without_neighboring_boms(10, K, H)
