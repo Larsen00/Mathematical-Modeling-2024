@@ -127,8 +127,9 @@ function without_neighboring_boms(chd, K, H)
     @constraint(m, [i=1:n], R[i] >= H[i] + chd)
 
     # Constraints to ensure z[i] captures the absolute deviation
-    @constraint(m, [i=1:n], z[i] == R[i] - (H[i] + chd))
-    @constraint(m, [i=2:n], sum(x[i+j] for j=-1:0) <= 1)
+    @constraint(m, [i=1:n], z[i] <= R[i] - (H[i] + chd))
+    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
 
     optimize!(m)
     
@@ -153,6 +154,66 @@ function without_neighboring_boms(chd, K, H)
 end
 
 
-solveIP(10 ,H,K)
-smooth_channel(10, K, H)
-without_neighboring_boms(10, K, H)
+
+function alterK(chd, K1, K2, K3, H)
+    # Model
+    m = Model(HiGHS.Optimizer)
+
+    # length of data points 
+    n = length(H)
+    A1 = constructA(H, K1)
+    A2 = constructA(H, K2)
+    A3 = constructA(H, K3)
+
+    # Variables
+    @variable(m, x[1:n], Bin)
+    @variable(m, b1[1:n], Bin)
+    @variable(m, b2[1:n], Bin)
+    @variable(m, b3[1:n], Bin)
+    @variable(m, z[1:n] >= 0)  
+    @expression(m, R[i=1:n], sum(A1[i,j]*x[j]*b1[j] + A2[i,j]*x[j]*b2[j] + A3[i,j]*x[j]*b3[j] for j=1:n))
+
+    # Adjust the objective to minimize the sum of z, representing the total deviation
+    @objective(m, Min, sum(z[i] for i=1:n))
+
+    # Constraint to ensure enough dirt is removed, considering the height and channel depth
+    @constraint(m, [i=1:n], R[i] >= H[i] + chd)
+
+    # Constraints to ensure z[i] captures the absolute deviation
+    @constraint(m, [i=1:n], z[i] <= R[i] - (H[i] + chd))
+    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
+    @constraint(m, [i=1:n], b1[i] + b2[i] + b3[i] <= 1)
+
+    optimize!(m)
+    
+    if termination_status(m) == MOI.OPTIMAL
+        println("without_neighboring_boms")
+        println("Objective value: ", JuMP.objective_value(m))
+        println("x = ", JuMP.value.(x))
+        println("R = ", JuMP.value.(R))
+        f1 = open("Project3/res/p6_X.txt", "w")
+        f2 = open("Project3/res/p6_R.txt", "w")
+        XX = JuMP.value.(x)
+        RR = JuMP.value.(R)
+        for i in 1:n
+            println(f1, XX[i])
+            println(f2, RR[i])
+        end
+        close(f1)
+        close(f2)
+    else
+        println("Optimization was not successful. Return code: ", termination_status(m))
+    end
+end
+
+
+
+# solveIP(10 ,H,K)
+# smooth_channel(10, K, H)
+# without_neighboring_boms(10, K, H)
+
+K2 = [500 230 60]
+K3 = [1000 400 70]
+
+alterK(10, K, K2, K3, H)
