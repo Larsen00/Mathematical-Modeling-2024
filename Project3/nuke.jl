@@ -82,7 +82,7 @@ function smooth_channel(chd, K, H)
 
     # Constraints to ensure z[i] captures the absolute deviation
     @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
 
     optimize!(m)
     
@@ -129,7 +129,7 @@ function without_neighboring_boms(chd, K, H)
 
     # Constraints to ensure z[i] captures the absolute deviation
     @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
+    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
     @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
 
     optimize!(m)
@@ -158,7 +158,7 @@ end
 
 function alterK(chd, K1, K2, K3, H)
     # Model
-    m = Model(Ipopt.Optimizer)
+    m = Model(HiGHS.Optimizer)
 
     # length of data points 
     n = length(H)
@@ -179,9 +179,9 @@ function alterK(chd, K1, K2, K3, H)
 
     # Constraints to ensure z[i] captures the absolute deviation
     @constraint(m, [i=1:n], z[i] >= R[i] - (H[i] + chd))
-    @constraint(m, [i=1:n], -z[i] <= (R[i] - (H[i] + chd)))
-    @constraint(m, [i=2:n], x[i-1] + x[i] <= 1)
-    @constraint(m, [i=1:n], b1[i] + b2[i] + b3[i] <= 1)
+    @constraint(m, [i=1:n], z[i] >= -(R[i] - (H[i] + chd)))
+    @constraint(m, [i=2:n], sum(x[i-1, j] + x[i, j] for j=1:3) <= 1)
+    @constraint(m, [i=1:n], sum(x[i, j] for j= 1:3) <= 1)
 
     optimize!(m)
     
@@ -208,10 +208,10 @@ end
 
 
 # solveIP(10 ,H,K)
-smooth_channel(10, K, H)
-without_neighboring_boms(10, K, H)
+# smooth_channel(10, K, H)
+# without_neighboring_boms(10, K, H)
 
 K2 = [500 230 60]
 K3 = [1000 400 70]
 
-# alterK(10, K, K2, K3, H)
+alterK(10, K, K2, K3, H)
