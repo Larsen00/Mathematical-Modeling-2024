@@ -13,7 +13,7 @@ using GLPK, Cbc, JuMP, SparseArrays, Ipopt, DelimitedFiles
 # 80
 # ]
 
-H = readdlm("Project3\\interpol_heights.txt")
+H = readdlm("Project3/interpol_heights.txt")
 
 
 
