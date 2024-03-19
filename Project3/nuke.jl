@@ -38,8 +38,7 @@ function solveIP(H, K)
 
     @objective(myModel, Min, sum(x[j] for j=1:h) )
 
-    @constraint(myModel, [j=1:h],R[j] >= H[j] + 10 )
-    @constraint(myModel, [i=1:h],R[i] == sum(A[i,j]*x[j] for j=1:h) )
+    @constraint(myModel, [i=1:h], sum(A[i,j]*x[j] for j=1:h) >= H[i] + 10 )
 
     optimize!(myModel)
 
