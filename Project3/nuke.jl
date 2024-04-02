@@ -19,7 +19,7 @@ function termination_check(model, problem, x, R, n)
         XX = JuMP.value.(x)
         RR = JuMP.value.(R)
         for i in 1:n
-            println(f1, XX[i])
+            println(f1, XX[i, :])
             println(f2, RR[i])
         end
         close(f1)
@@ -171,3 +171,6 @@ K2 = [500 230 60]
 K3 = [1000 400 70]
 
 alterK(10, K, K2, K3, H)
+
+
+
