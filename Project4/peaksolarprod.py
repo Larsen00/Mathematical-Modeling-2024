@@ -9,6 +9,7 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
 
 # Find all image files
 file_name = glob.glob('Project4/processed/17/*natural_color.npy')
@@ -81,4 +82,8 @@ for excel_files in excel_str:
         Y.append(dummy.values)
     
 Y = np.array(Y)
+X = Xdata.T
+model = Ridge()
+model.fit(X,Y)
+model.predict(X)
 print('DONE')
