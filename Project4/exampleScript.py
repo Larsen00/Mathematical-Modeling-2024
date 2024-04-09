@@ -9,6 +9,8 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
 
 # dates of images
 dates = ['0317', '0318', '0319', '0326', '0329', '0331']
@@ -26,6 +28,7 @@ mask = np.load('Project4/processed/mask.npy')
 
 # Allocate memory and load image data
 Xdata = np.zeros((mask.sum(), len(file_name))) # X-variable: The values from the pixels in the images
+groundIntensity = np.zeros(mask.sum())
 times = []
 timesDay = []
 i = 0
@@ -35,6 +38,9 @@ for entry in file_name:
     dummy = img[:,:,0]+img[:,:,1]-2*img[:,:,2]
     #dummy = dummy*mask
     Xdata[:,i] = dummy[mask].flatten()
+    
+    # It is assumed that the maximum value found of a pixel is the gound without a cloud
+    groundIntensity = np.maximum(groundIntensity, Xdata[:,i])
     
     # Find time information in filename
     ind = entry.find('202403')
@@ -47,7 +53,11 @@ for entry in file_name:
     
 timesDay = np.array(timesDay)
 times = np.array(times)
+
+for i in range(len(file_name)):
+    Xdata[:, i] /= groundIntensity  # find en måde at shift det på
     
+
 # get target/production values
 Y = []
 for excel_file in excel_str:
@@ -76,4 +86,15 @@ for excel_file in excel_str:
         Y.append(dummy.values)
     
 Y = np.array(Y)
+print('DONE')
+
+X = Xdata.T
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+
+
+
+model = Ridge()
+model.fit(X_train,Y_train)
+Y_test_hat = model.predict(X_test)
+print(sum((Y_test_hat-Y_test)**2)/len(Y_test))
 print('DONE')
