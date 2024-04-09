@@ -50,15 +50,15 @@ times = np.array(times)
     
 # get target/production values
 Y = []
-for excel_files in excel_str:
-    target = pd.read_excel(excel_files, usecols="B,F") # Minutes1DK, SolorPower
+for excel_file in excel_str:
+    target = pd.read_excel(excel_file, usecols="B,F") # Minutes1DK, SolorPower
     target_times = target['Minutes1DK']
     # Ensure the column is in datetime format
     target_times = pd.to_datetime(target_times)
     # Format the time to HHMMSS and remove colons
     target_times = target_times.dt.strftime('%H%M%S')    
     
-    for entry in times[timesDay==excel_files[-7:-5]]:  # every times where on the same day as excelfile
+    for entry in times[timesDay==excel_file[-7:-5]]:  # every times where on the same day as excelfile
         # Find rows where 'column_name' equals 'value_to_find'
         condition = target_times == entry[:-2] + '00'
         ind = target_times.index[condition].tolist()
