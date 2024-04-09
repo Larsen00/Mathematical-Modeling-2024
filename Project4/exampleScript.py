@@ -33,7 +33,7 @@ for entry in file_name:
     img = np.load(entry)
     
     dummy = img[:,:,0]+img[:,:,1]-2*img[:,:,2]
-    dummy = dummy*mask
+    #dummy = dummy*mask
     Xdata[:,i] = dummy[mask].flatten()
     
     # Find time information in filename
@@ -76,3 +76,4 @@ for excel_files in excel_str:
         Y.append(dummy.values)
     
 Y = np.array(Y)
+print('DONE')
