@@ -55,7 +55,7 @@ timesDay = np.array(timesDay)
 times = np.array(times)
 
 for i in range(len(file_name)):
-    Xdata[:, i] /= groundIntensity  # find en måde at shift det på
+    Xdata[:, i] /= groundIntensity  # find en måde at shift det på (hvis nødvendit) + lav et filter
     
 
 # get target/production values
