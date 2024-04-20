@@ -54,15 +54,29 @@ for entry in file_name:
 timesDay = np.array(timesDay)
 times = np.array(times)
 
+def scale255(x):
+    return (x + 255*2)/4
+
+# groundIntensity = scale255(groundIntensity)
+print(np.mean(groundIntensity))
+print(np.median(groundIntensity))
+
+plt.hist(groundIntensity, bins=20, color='blue', alpha=0.7)  # You can adjust the number of bins and color as needed
+plt.title('Histogram of groundIntensity')
+plt.xlabel('Intensity')
+plt.ylabel('Frequency')
+plt.show()
+
 for i in range(len(file_name)):
-    Xdata[:, i] /= groundIntensity  # find en måde at shift det på (hvis nødvendit) + lav et filter
+    # Xdata[:, i] = scale255(Xdata[:, i]) / groundIntensity  # find en måde at shift det på (hvis nødvendit) + lav et filter
+    Xdata[:, i] /= groundIntensity
     
 
 # get target/production values
 Y = []
 for excel_file in excel_str:
-    target = pd.read_excel(excel_file, usecols="B,F") # Minutes1DK, SolorPower
-    target_times = target['Minutes1DK']
+    target = pd.read_excel(excel_file, usecols="A,F") # Minutes1DK, SolorPower
+    target_times = target['Minutes1UTC']
     # Ensure the column is in datetime format
     target_times = pd.to_datetime(target_times)
     # Format the time to HHMMSS and remove colons
