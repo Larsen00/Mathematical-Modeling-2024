@@ -12,6 +12,7 @@ def make_dir(path:str):
 def load_images(target:str, path:str) -> np.ndarray:
     """
     Load images from the given dates.
+    ---
     Args:
         target: List of dates to load images from
         path: Path to the directory containing the images
@@ -72,6 +73,7 @@ def load_images(target:str, path:str) -> np.ndarray:
 def Lucas_Kanade_method(V:np.ndarray, sigma:float=1, n:int=3, stride:int=1, objects=[]) -> np.ndarray:
     """
     Apply Gaussian filter and use Lucas-Kanade method to calculate optical flow.
+    ---
     Args:
         V: 3D array of images (y, x, t)
         sigma: Sigma value for Gaussian filter
@@ -113,6 +115,7 @@ def Lucas_Kanade_method(V:np.ndarray, sigma:float=1, n:int=3, stride:int=1, obje
 def plot_with_noise_filtering(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask, threshold:float=1.0, stride:int=1, show:bool=False) -> np.ndarray:
     """
     Filter out noises in the optical flow.
+    ---
     Args:
         dps_images: Results of optical flow in the form of a 4D array (2, V.shape[0], V.shape[1], V.shape[2])
         V: 3D array of images after gaussian filtering (y, x, t)
@@ -158,6 +161,7 @@ def plot_with_noise_filtering(dps_images:np.ndarray, V:np.ndarray, timesDay, tim
 def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask, batch_size:int=0,  n:int=1, objects=[], show:bool=True):
     """
     Interpolate the flow between two images.
+    ---
     Args:
         dps_images: Results of optical flow in the form of a 4D array (2, V.shape[0], V.shape[1], V.shape[2])
         V: 3D array of images after gaussian filtering (y, x, t)
@@ -218,7 +222,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
         if show:
             plt.show()
         else:
-            plt.savefig(f"{path}/_interpolated/interpolated_flow_202403{timesDay[t]}_{times[t]}.svg")
+            plt.savefig(f"{path}/_interpolated/interpolated_flow_202403{timesDay[t]}_{times[t]}.png")
     
     return
 
@@ -226,6 +230,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
 def plot_sequence_of_interpolated_images(imgs:np.ndarray) -> None:
     """
     Plot sequence of interpolated images.
+    ---
     Args:
         imgs: List of images to plot
     """
@@ -248,6 +253,7 @@ def plot_sequence_of_interpolated_images(imgs:np.ndarray) -> None:
 def move_pixel(img, source, target) -> None:
     """
     Move pixel from source to target
+    ---
     Args:
         img: 2D array of image
         source: (x, y) coordinate of source pixel
@@ -271,14 +277,60 @@ def move_pixel(img, source, target) -> None:
         print(f"Moving pixel from {source} to {target}")
     return
 
+def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask, minutes_after:int=15, batch_size:int=0, objects=[], show:bool=False) -> list:
+    """
+    extrapolate the flow between two images.
+    ---
+    Args:
+        dps_images: Results of optical flow in the form of a 4D array (2, V.shape[0], V.shape[1], V.shape[2])
+        V: 3D array of images after gaussian filtering (y, x, t)
+        timesDay: List of dates
+        times: List of times
+        mask: Binary mask outlining Denmark
+        base: Base image to extrapolate
+        minutes_after: Minutes after the base image
+        show: Whether to show the plot
+    Return:
+        List of extrapolated images
+    """
+    # interpolate flow
+    extrapolate_images = []
+    for i, t in enumerate(objects):
+        extrapolate_image = V[:,:,t].copy()
+        for y in range(dps_images.shape[1]):
+            for x in range(dps_images.shape[2]):
+                if (dps_images[0,y,x,i] == 0 or dps_images[1,y,x,i] == 0):
+                    continue
+                else:
+                    # move pixel
+                    dx = np.rint(dps_images[0,y,x,i]*(minutes_after)/(15)).astype(int)
+                    dy = np.rint(dps_images[1,y,x,i]*(minutes_after)/(15)).astype(int)
+                    # move pixels as a batch to same direction
+                    if dx != 0 and dy != 0:
+                        x_lower, x_upper = np.maximum(0, x-batch_size), np.minimum(V.shape[1], x+batch_size+1)
+                        y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(V.shape[0], y+batch_size+1)
+                        for y_batch in range(y_lower, y_upper):
+                            for x_batch in range(x_lower, x_upper):
+                                move_pixel(extrapolate_image, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
+        extrapolate_images.append(extrapolate_image)
+    if show:
+        for i, t in enumerate(objects):
+            plt.imshow(extrapolate_images[i]*mask, cmap="viridis")
+            plt.title(f"Extrapolated Image {minutes_after} minutes after 202403{timesDay[t]}_{times[t]}")
+            plt.tight_layout()
+            plt.show()
+    return extrapolate_images
+
 if __name__ == "__main__":
     path = "./Project4"
-    target_days = ['0317']
+    target_days = ['0317', '0318']
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
+
+        # Define how many objects subject to calculating optical flow
         objects=range(20,25)
         dps_images = Lucas_Kanade_method(V, objects=objects)
         print(dps_images.shape, V.shape)
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
-        interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True)
-        
+        # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True)
+        # extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
