@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os.path
 
-if not os.path.isdir('Project4/_static'):
-    os.mkdir("Project4/_static")
+path = "Project4"
+
+if not os.path.isdir(f'{path}/_static'):
+    os.mkdir(f"{path}/_static")
 
 stride = 2
-
-path = "Project4"
 
 # dates of images
 dates = ['0317', '0318', '0319', '0326', '0329', '0331']
