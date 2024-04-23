@@ -14,6 +14,11 @@ folder_path = 'Project4/processedfull'
 files_in_directory = os.listdir(folder_path)
 dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
 
+def remove_dates(dates, string_list):
+    return [d for d in dates if d not in string_list]
+
+# remove some dates
+dates = remove_dates(dates, ['20240317','20240329'])
 
 # Function to calculate "closeness" to midday
 def month_func(month):
