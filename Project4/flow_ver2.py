@@ -320,17 +320,21 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
             plt.tight_layout()
             plt.show()
     return extrapolate_images
-
+pred_im = []
+target_days = ['0317']
+objects=[15]
 if __name__ == "__main__":
     path = "./Project4"
-    target_days = ['0317', '0318']
+    
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
 
         # Define how many objects subject to calculating optical flow
-        objects=range(20,25)
+        
         dps_images = Lucas_Kanade_method(V, objects=objects)
-        print(dps_images.shape, V.shape)
+
+  
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
         # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True)
-        # extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
+        pred_im = extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
+        
