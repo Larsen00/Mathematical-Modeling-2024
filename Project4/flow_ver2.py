@@ -251,7 +251,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
 
 if __name__ == "__main__":
     path = 'Project4/processedfull'
-    target_days = ['20240317']
+    target_days = ['0317']
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
         print(timesDay, times)
