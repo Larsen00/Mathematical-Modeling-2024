@@ -1,20 +1,20 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr  9 00:57:17 2024
 
-@author: anym
-"""
 import openpyxl
 import glob
 import numpy as np
 import pandas as pd
+import os
 import matplotlib.pyplot as plt
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 
 
-# dates of images
-dates = ['0301','0302','0303','0304','0305','0306','0307','0317', '0318', '0319', '0326', '0329', '0331']
+
+folder_path = 'Project4/processedfull'
+files_in_directory = os.listdir(folder_path)
+dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
+
+
 # Function to calculate "closeness" to midday
 def month_func(month):
     # Assuming june,july is the peak and values decrease. This uses a Gaussian distribution concept.
@@ -26,13 +26,13 @@ def hour_func(hour,month): # month used to determine standard deviation - winter
 # Find all image files
 file_name = []
 for day in dates:
-    file_name += glob.glob(f'Project4/processedfull/{day[2:4]}/*natural_color.npy')
+    file_name += glob.glob(f'{folder_path}/{day[6:8]}/*natural_color.npy')
 
 # Point to production data
-excel_str = [f'Project4/processedfull/2024{day}.xlsx' for day in dates]
+excel_str = [f'{folder_path}/{day}.xlsx' for day in dates]
 
 # Load binary mask outlining Denmark
-mask = np.load('Project4/processedfull/mask.npy')
+mask = np.load( folder_path + '/mask.npy')
 
 # Allocate memory and load image data
 Xdata = np.zeros((mask.sum(), len(file_name))) # X-variable: The values from the pixels in the images
