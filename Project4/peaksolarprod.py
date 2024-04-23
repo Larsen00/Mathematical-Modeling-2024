@@ -10,29 +10,40 @@ from sklearn.model_selection import train_test_split
 
 
 
+#OLD#
+#dates = ['0301','0302','0303','0304','0305','0306','0307','0317', '0318', '0319', '0326', '0329', '0331']
+#excel_str = [f'Project4/processedfull/2024{day}.xlsx' for day in dates]
+#file_name = []
+#for day in dates:
+#    file_name += glob.glob(f'Project4/processedfull/{day[2:4]}/*natural_color.npy')
+#mask = np.load('Project4/processedfull/mask.npy')
+print("Loading data")
 folder_path = 'Project4/processedfull'
 files_in_directory = os.listdir(folder_path)
 dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
 
 def remove_dates(dates, string_list):
-    return [d for d in dates if d not in string_list]
+   return [d for d in dates if d not in string_list]
 
 # remove some dates
-dates = remove_dates(dates, ['20240317','20240329'])
+dates_to_remove =['20240317']
+dates = remove_dates(dates, dates_to_remove)
 
 # Function to calculate "closeness" to midday
 def month_func(month):
     # Assuming june,july is the peak and values decrease. This uses a Gaussian distribution concept.
-    return np.exp(-((month - 6.5)**2) / (2 * (6**2)))  # Standard deviation is 4 hours for a sharper drop
+    return np.exp(-((month - 5.5)**2) / (2 * (5.5**2)))  # Standard deviation is 5.5 hours for a sharper drop
 def hour_func(hour,month): # month used to determine standard deviation - winter = shorter days
     #This uses a Gaussian distribution concept.
-    return np.exp(-((hour - 12)**2) / (((month_func(month)*6)**2)))  # Standard deviation is 5 hours for a sharper drop
+    return np.exp(-((hour - 12)**2) / (((month_func(month)*5)**2)))  # Standard deviation is 5 hours for a sharper drop
 
 # Find all image files
 file_name = []
+file_name_removed = []
 for day in dates:
     file_name += glob.glob(f'{folder_path}/{day[6:8]}/*natural_color.npy')
-
+for day in dates_to_remove:
+    file_name_removed += glob.glob(f'{folder_path}/{day[6:8]}/*natural_color.npy')
 # Point to production data
 excel_str = [f'{folder_path}/{day}.xlsx' for day in dates]
 
@@ -57,7 +68,6 @@ for entry in file_name:
     timesDay_new = entry[ind+6:ind+8]
 
     dummy = (img[:,:,0]+img[:,:,1]-2*img[:,:,2])[mask].flatten()
-
     #standardize data
     if np.std(dummy) != 0:
         dummy = (dummy-np.mean(dummy))/np.std(dummy)
@@ -68,7 +78,7 @@ for entry in file_name:
     month_factor = month_func(month)
     #dummy = (img[:,:,0]+img[:,:,1]-2*img[:,:,2])
     dummy = dummy*hour_factor*month_factor
-    print(times_new,timesDay_new,hour_factor,month_factor,month)
+    
     #MSE results on test data of normalizing with hour of day and month of year on one data split:
     #BTW gausian distribution is with std = 3
     #No normalization: 95784
@@ -118,12 +128,16 @@ for excel_file in excel_str:
 Y = np.array(Y)
 print('DONE')
 X = Xdata.T
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=1)
-
-
-
-model = Ridge()
-model.fit(X_train,Y_train)
-Y_test_hat = model.predict(X_test)
-print((np.round(np.mean((Y_test_hat-Y_test)**2))))
-print(np.mean(abs(Y_test_hat-Y_test)))
+errors=[]
+avg_distances=[]
+for i in range(0,20):   
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=2*i)
+    model = Ridge()
+    model.fit(X_train,Y_train)
+    Y_test_hat = model.predict(X_test)
+    error = ((np.mean((Y_test_hat-Y_test)**2)))
+    avg_dist = np.mean(np.abs(Y_test_hat-Y_test))
+    errors.append(error)
+    avg_distances.append(avg_dist)
+print(np.mean(errors))
+print(avg_dist)
