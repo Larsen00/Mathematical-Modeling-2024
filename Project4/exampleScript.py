@@ -9,22 +9,24 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 
-# dates of images
-dates = ['0317', '0318', '0319', '0326', '0329', '0331']
+folder_path = 'Project4/processedfull'
+files_in_directory = os.listdir(folder_path)
+dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
 
 # Find all image files
 file_name = []
 for day in dates:
-    file_name += glob.glob(f'Project4/processed/{day[2:4]}/*natural_color.npy')
+    file_name += glob.glob(f'{folder_path}/{day[6:8]}/*natural_color.npy')
 
 # Point to production data
-excel_str = [f'Project4/processed/2024{day}.xlsx' for day in dates]
+excel_str = [f'{folder_path}/{day}.xlsx' for day in dates]
 
 # Load binary mask outlining Denmark
-mask = np.load('Project4/processed/mask.npy')
+mask = np.load( folder_path + '/mask.npy')
 
 # Allocate memory and load image data
 Xdata = np.zeros((mask.sum(), len(file_name))) # X-variable: The values from the pixels in the images
@@ -66,6 +68,13 @@ plt.title('Histogram of groundIntensity')
 plt.xlabel('Intensity')
 plt.ylabel('Frequency')
 plt.show()
+
+
+x = np.full(mask.shape, np.nan)
+x[mask] = groundIntensity
+
+np.savetxt("reshapedIntensity.csv", x, delimiter=",")
+
 
 for i in range(len(file_name)):
     # Xdata[:, i] = scale255(Xdata[:, i]) / groundIntensity  # find en måde at shift det på (hvis nødvendit) + lav et filter
