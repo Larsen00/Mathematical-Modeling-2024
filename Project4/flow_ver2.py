@@ -3,72 +3,12 @@ import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
 import os
+from load_images import load_images
 
 def make_dir(path:str):
     if os.path.isdir(path) == False:
         os.mkdir(path)
     return
-
-def load_images(target:str, path:str) -> np.ndarray:
-    """
-    Load images from the given dates.
-    ---
-    Args:
-        target: List of dates to load images from
-        path: Path to the directory containing the images
-    Return:
-        V: 3D array of images (y, x, t)
-    """
-    # Allocate memory and load image data
-    times = []
-    timesDay = []
-    ims = []
-    dates = ['0317', '0318', '0319', '0326', '0329', '0331']
-    # Find all image files
-    file_name = []
-    for day in dates:
-        if target in day:
-            file_name += glob.glob(f'{path}/processed/{day[2:4]}/*natural_color.npy')
-    
-    # Sort the file names in time
-    ind = file_name[0].find('202403')
-    file_name.sort(key=lambda x: int(x[ind+12:ind+14]))
-    file_name.sort(key=lambda x: int(x[ind+10:ind+12]))
-    file_name.sort(key=lambda x: int(x[ind+8:ind+10]))
-    # for name in file_name:
-    #     print(name[ind+8:ind+14])
-    
-    if len(file_name) == 0:
-        raise ValueError("No images found.")
-
-    # Load binary mask outlining Denmark
-    mask = np.load(f'{path}/processed/mask.npy') 
-    for i, entry in enumerate(file_name):
-        img = np.load(entry)
-        dummy = img[:,:,0]+img[:,:,1]-2*img[:,:,2]
-        # dummy = dummy*mask
-
-        # Find time information in filename
-        ind = entry.find('202403')
-        
-        times.append(entry[ind+8:ind+14])   # gives time of day hhmmss
-        timesDay.append(entry[ind+6:ind+8]) # gives the date
-        
-        # read images
-        ims.append(dummy)
-
-        # NOTE Does it make sense to make optical between days? dates.index(entry[ind+6:ind+8])
-        print(f"Progress: {(i+1)/len(file_name)*100:.2f}%", end="\r")
-        
-    timesDay = np.array(timesDay)
-    times = np.array(times)
-
-    # make image array (y,x,t)
-    V = np.dstack(ims)
-    print(f"Reading images done! {len(ims)} images read.")
-    timesDay = np.array(timesDay)
-    times = np.array(times)
-    return V, timesDay, times, mask
 
 def Lucas_Kanade_method(V:np.ndarray, sigma:float=1, n:int=3, stride:int=1, objects=[]) -> np.ndarray:
     """
@@ -310,8 +250,8 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
     return extrapolate_images, f"202403{timesDay[t]}_{times[t][:2]}{(minutes_after + int(times[t][2:4])):%02d}{times[t][4:]}"
 
 if __name__ == "__main__":
-    path = "./Project4"
-    target_days = ['0317']
+    path = 'Project4/processedfull'
+    target_days = ['20240317']
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
         print(timesDay, times)

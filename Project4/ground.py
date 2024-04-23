@@ -1,6 +1,7 @@
 import glob
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 def extract_groundintensity ():
     folder_path = 'Project4/processedfull'
@@ -42,3 +43,7 @@ def extract_groundintensity ():
     x = np.full(mask.shape, np.nan)
     x[mask] = groundIntensity
     return x
+
+x = extract_groundintensity()
+plt.imshow(x, cmap='viridis')
+plt.show()
