@@ -318,7 +318,8 @@ if __name__ == "__main__":
         # Define how many objects subject to calculating optical flow
         objects=range(1)
         dps_images = Lucas_Kanade_method(V, objects=objects)
-        print(dps_images.shape, V.shape)
+
+  
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
         # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True)
         earth_image = V[:,:,0]
