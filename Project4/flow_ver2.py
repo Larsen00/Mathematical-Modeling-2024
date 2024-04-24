@@ -143,20 +143,15 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                                 for x_batch in range(x_lower, x_upper):
                                     move_pixel(interpolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
             # Fill nan values from the earth image
-            for y in range(dps_images.shape[1]):
-                for x in range(dps_images.shape[2]):
-                    if np.isnan(interpolate_image[y,x]) and mask[y,x] == 1.0:
-                        interpolate_image[y,x] = earth_image[y,x]
-                    elif mask[y,x] == 0.0:
-                        interpolate_image[y,x] = 0.0
+            fill_earth_image(interpolate_image, mask)
             interpolate_images.append(interpolate_image)
         
         # plot_images consists of [start image,...interpolated images..., end image]
         plot_images = [V[:,:,t]] + interpolate_images + [V[:,:,t+1]]
       
-        # Take mask on every images
-        for i in range(len(plot_images)):
-            plot_images[i] = plot_images[i]*mask
+        # # Take mask on every images
+        # for i in range(len(plot_images)):
+        #     plot_images[i] = plot_images[i]*mask
         
         fig, ax = plt.subplots(nrows=1,ncols=3, figsize=(16,9))
         ax[0].imshow(plot_images[-2], cmap="viridis")
@@ -185,16 +180,24 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
     Return:
         Image with pixel moved
     """
-    # Make sure that the target pixel is within the image
     if not (target[0] >= img.shape[1] or target[1] >= img.shape[0] or target[0] < 0 or target[1] < 0):
-        # Move pixel from source to target
-        if np.isnan(img[target[1], target[0]]) and mask[target[1], target[0]] == 1.0:
-            val = img_origin[source[1], source[0]]
-        else:
-            val = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
-        # give value to target pixel
-        img[target[1], target[0]] = val
-        print(f"Moving pixel from {source} to {target}, pixel value {val}")
+        if mask[target[1], target[0]] == 1.0:
+            if np.isnan(img[target[1], target[0]]):
+                img[target[1], target[0]] = img_origin[source[1], source[0]]
+                print(f"Moving pixel from {source} to {target}")
+            else:
+                img[target[1], target[0]] = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
+
+    # Make sure that the target pixel is within the image
+    # if not (target[0] >= img.shape[1] or target[1] >= img.shape[0] or target[0] < 0 or target[1] < 0):
+    #     # Move pixel from source to target
+    #     if np.isnan(img[target[1], target[0]]) and mask[target[1], target[0]] == 1.0:
+    #         val = img_origin[source[1], source[0]]
+    #     else:
+    #         val = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
+    #     # give value to target pixel
+    #     img[target[1], target[0]] = val
+    #     print(f"Moving pixel from {source} to {target}, pixel value {val}")
     # print(source, target)
 
     # # Move pixel from the opposite direction of the target to the source to the source.
@@ -244,12 +247,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                             for x_batch in range(x_lower, x_upper):
                                 move_pixel(extrapolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
         # Fill nan values from the earth image
-        for y in range(dps_images.shape[1]):
-            for x in range(dps_images.shape[2]):
-                if np.isnan(extrapolate_image[y,x]) and mask[y,x] == 1.0:
-                    extrapolate_image[y,x] = earth_image[y,x]
-                elif mask[y,x] == 0.0:
-                    extrapolate_image[y,x] = 0.0
+        fill_earth_image(extrapolate_image, mask)
         extrapolate_images.append(extrapolate_image)
     if show:
         for i, t in enumerate(objects):
@@ -260,9 +258,17 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
     
     return extrapolate_images, f"202403{timesDay[t]}_{times[t][:2]}{str(minutes_after + int(times[t][2:4])).zfill(2)}{times[t][4:]}"
 
+def fill_earth_image(img, mask):
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            if np.isnan(img[y,x]) and mask[y,x] == 1.0:
+                img[y,x] = earth_image[y,x]
+            elif mask[y,x] == 0.0:
+                img[y,x] = 0.0
+
 if __name__ == "__main__":
     path = 'Project4/Processedfull'
-    target_days = ['0317']
+    target_days = ['0320']
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
         earth_image = extract_groundintensity()
@@ -274,4 +280,4 @@ if __name__ == "__main__":
 
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
         # print(len(interpolate_flow(dps_images, V, earth_image, timesDay, times, mask, objects=objects, show=True, n=15)))
-        extrapolate_flow(dps_images, V, earth_image, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
+        print(extrapolate_flow(dps_images, V, earth_image, timesDay, times, mask, minutes_after=15, objects=objects, show=True))

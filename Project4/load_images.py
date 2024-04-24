@@ -64,3 +64,10 @@ def load_images(target:str, path:str) -> np.ndarray:
     timesDay = np.array(timesDay)
     times = np.array(times)
     return V, timesDay, times, mask
+
+if __name__ == "__main__":
+    path = 'Project4/Processedfull'
+    target_days = ['0317']
+    for target in target_days:
+        V, timesDay, times, mask = load_images(target, path)
+        pass
