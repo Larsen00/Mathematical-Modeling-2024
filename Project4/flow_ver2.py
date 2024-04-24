@@ -184,7 +184,7 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
         if mask[target[1], target[0]] == 1.0:
             if np.isnan(img[target[1], target[0]]):
                 img[target[1], target[0]] = img_origin[source[1], source[0]]
-                print(f"Moving pixel from {source} to {target}")
+                #print(f"Moving pixel from {source} to {target}")
             else:
                 img[target[1], target[0]] = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
 

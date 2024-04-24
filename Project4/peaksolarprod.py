@@ -17,7 +17,7 @@ def remove_dates(dates, string_list):
    return [d for d in dates if d not in string_list]
 
 # remove some dates
-dates_to_remove =['20240317','20240318']
+dates_to_remove =['20240317','20240301']
 dates = remove_dates(dates, dates_to_remove)
 
 # Function to calculate "closeness" to midday
@@ -26,7 +26,7 @@ def month_func(month):
     return 1#np.exp(-((month - 5.5)**2) / (2 * (5.5**2)))  # Standard deviation is 5.5 hours for a sharper drop
 def hour_func(hour): # month used to determine standard deviation - winter = shorter days
     #This uses a Gaussian distribution concept.
-    return np.exp(-((hour - 12)**2) / (((5)**2)))  # Standard deviation is 4.5 hours for a sharper drop
+    return np.exp(-((hour - 12)**2) / (((5.1)**2)))  # Standard deviation is 4.5 hours for a sharper drop
 
 # Find all image files
 file_name = []
@@ -122,7 +122,7 @@ print('DONE')
 X = Xdata.T
 errors=[]
 avg_distances=[]
-alpha_values = np.logspace(-6, 6, 13)  # Example range from very small to large alphas
+alpha_values = np.linspace(10, 3000, 20)  # Example range from very small to large alphas
 # Initialize RidgeCV
 opt_alphas = []
 for i in range(0,5): 

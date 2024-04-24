@@ -5,7 +5,7 @@ from datetime import datetime
 path = "./Project4/Processedfull"
 
 pred_im = []
-target_days = ['0317','0318']
+target_days = ['0317','0301']
 objects=range(20,40)
 avg_distances = []
 errors = []
