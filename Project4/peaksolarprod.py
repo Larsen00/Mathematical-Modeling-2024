@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 #    file_name += glob.glob(f'Project4/processedfull/{day[2:4]}/*natural_color.npy')
 #mask = np.load('Project4/processedfull/mask.npy')
 print("Loading data")
-folder_path = 'Project4/processedfull'
+folder_path = 'Project4/Processedfull'
 files_in_directory = os.listdir(folder_path)
 dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
 
