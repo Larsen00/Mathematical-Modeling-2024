@@ -143,7 +143,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                                 for x_batch in range(x_lower, x_upper):
                                     move_pixel(interpolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
             # Fill nan values from the earth image
-            fill_earth_image(interpolate_image, mask)
+            fill_earth_image(interpolate_image, mask, earth_image)
             interpolate_images.append(interpolate_image)
         
         # plot_images consists of [start image,...interpolated images..., end image]
@@ -247,7 +247,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                             for x_batch in range(x_lower, x_upper):
                                 move_pixel(extrapolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
         # Fill nan values from the earth image
-        fill_earth_image(extrapolate_image, mask)
+        fill_earth_image(extrapolate_image, mask, earth_image)
         extrapolate_images.append(extrapolate_image)
     if show:
         for i, t in enumerate(objects):
@@ -258,7 +258,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
     
     return extrapolate_images, f"202403{timesDay[t]}_{times[t][:2]}{str(minutes_after + int(times[t][2:4])).zfill(2)}{times[t][4:]}"
 
-def fill_earth_image(img, mask):
+def fill_earth_image(img, mask, earth_image):
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             if np.isnan(img[y,x]) and mask[y,x] == 1.0:

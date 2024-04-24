@@ -28,10 +28,12 @@ height = df['height']
 f = sp.interpolate.interp1d(distances,height)
 xs = np.arange(0,79000,250) # we only want an x value every 250 metres
 interpol_heights = f(xs)
+bombs = pd.read_csv('')
 np.savetxt('interpol_heights.txt',interpol_heights,delimiter=',')
 
 plt.plot(xs,f(xs))
 plt.xlabel('Distance to sea')
 plt.ylabel('Interpolated height above sea-level')
-#plt.savefig(f'{os.getcwd()}/plots/channel_height.png')
-plt.show()
+plt.scatter(xs,)
+plt.savefig(f'{os.getcwd()}/plots/channel_height.png')
+
