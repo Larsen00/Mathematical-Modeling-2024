@@ -1,7 +1,5 @@
 import glob
 import numpy as np
-import scipy.ndimage
-import matplotlib.pyplot as plt
 import os
 
 

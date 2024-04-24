@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 def extract_groundintensity ():
-    folder_path = 'Project4/processedfull'
+    folder_path = 'Project4/Processedfull'
     files_in_directory = os.listdir(folder_path)
     dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
 
@@ -44,6 +44,7 @@ def extract_groundintensity ():
     x[mask] = groundIntensity
     return x
 
-x = extract_groundintensity()
-plt.imshow(x, cmap='viridis')
-plt.show()
+if __name__ == "__main__":
+    x = extract_groundintensity()
+    plt.imshow(x, cmap='viridis')
+    plt.show()
