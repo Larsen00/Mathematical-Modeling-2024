@@ -124,9 +124,9 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
     for i, t in enumerate(objects):
         interpolate_images = []
         original_image = V[:,:,t]
-        interpolate_image = np.zeros_like(original_image).copy()
-        interpolate_image[:] = np.nan
         for j in range(n):
+            interpolate_image = np.zeros_like(original_image).copy()
+            interpolate_image[:] = np.nan
             for y in range(dps_images.shape[1]):
                 for x in range(dps_images.shape[2]):
                     if (dps_images[0,y,x,i] == 0 or dps_images[1,y,x,i] == 0):
@@ -136,7 +136,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                         dx = np.rint(dps_images[0,y,x,i]*(j+1)/(n)).astype(int)
                         dy = np.rint(dps_images[1,y,x,i]*(j+1)/(n)).astype(int)
                         # move pixels as a batch to same direction
-                        if dx != 0 and dy != 0:
+                        if not (dx == 0 and dy == 0):
                             x_lower, x_upper = np.maximum(0, x-batch_size), np.minimum(V.shape[1], x+batch_size+1)
                             y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(V.shape[0], y+batch_size+1)
                             for y_batch in range(y_lower, y_upper):
@@ -146,28 +146,33 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
             fill_earth_image(interpolate_image, mask, earth_image)
             interpolate_images.append(interpolate_image)
         
-        # plot_images consists of [start image,...interpolated images..., end image]
-        plot_images = [V[:,:,t]] + interpolate_images + [V[:,:,t+1]]
+        # plot_images consists of [start image,...interpolated images...]
+        plot_images = [V[:,:,t]] + interpolate_images
       
         # # Take mask on every images
         # for i in range(len(plot_images)):
         #     plot_images[i] = plot_images[i]*mask
         
-        fig, ax = plt.subplots(nrows=1,ncols=3, figsize=(16,9))
-        ax[0].imshow(plot_images[-2], cmap="viridis")
-        ax[0].set_title(f"Interpolated Image")
-        ax[1].imshow(plot_images[-1], cmap="viridis")
-        ax[1].set_title(f"Real Image")
-        diff = plot_images[-2] - plot_images[-1]
-        ax[2].imshow(diff, cmap="viridis")
-        ax[2].set_title(f"Difference MSE: {np.square(diff).sum()/len((mask == 1.0).ravel()):.2f} Baseline MSE: {np.square((V[:,:,t]-V[:,:,t+1])*mask).sum()/len((mask == 1.0).ravel()):.2f}")
-        fig.suptitle(f"Interpolated Flow 202403{timesDay[t+1]}_{times[t+1]}")
-        fig.tight_layout()
+        # fig, ax = plt.subplots(nrows=1,ncols=3, figsize=(16,9))
+        # ax[0].imshow(plot_images[-2], cmap="viridis")
+        # ax[0].set_title(f"Interpolated Image")
+        # ax[1].imshow(plot_images[-1], cmap="viridis")
+        # ax[1].set_title(f"Real Image")
+        # diff = plot_images[-2] - plot_images[-1]
+        # ax[2].imshow(diff, cmap="viridis")
+        # ax[2].set_title(f"Difference MSE: {np.square(diff).sum()/len((mask == 1.0).ravel()):.2f} Baseline MSE: {np.square((V[:,:,t]-V[:,:,t+1])*mask).sum()/len((mask == 1.0).ravel()):.2f}")
+        # fig.suptitle(f"Interpolated Flow 202403{timesDay[t+1]}_{times[t+1]}")
+        # fig.tight_layout()
         if show:
-            plt.show()
+            for i, img in enumerate(plot_images):
+                plt.imshow(img*mask, cmap="viridis")
+                # print(f"202403{timesDay[t]}_{times[t][:2]}{str(i + 1 + int(times[t][2:4])).zfill(2)}{times[t][4:]}")
+                plt.title(f"202403{timesDay[t]}_{times[t][:2]}{str(i + 1 + int(times[t][2:4])).zfill(2)}{times[t][4:]}")
+                plt.pause(0.5)
+                plt.clf()
         else:
             plt.savefig(f"{path}/_interpolated/interpolated_flow_202403{timesDay[t]}_{times[t]}.png")
-    return interpolate_images
+    return interpolate_images, [f"202403{timesDay[t]}_{times[t][:2]}{str(i + 1 + int(times[t][2:4])).zfill(2)}{times[t][4:]}" for i in range(n)]
 
 def move_pixel(img, img_origin, mask, source, target) -> None:
     """
@@ -184,7 +189,7 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
         if mask[target[1], target[0]] == 1.0:
             if np.isnan(img[target[1], target[0]]):
                 img[target[1], target[0]] = img_origin[source[1], source[0]]
-                #print(f"Moving pixel from {source} to {target}")
+                print(f"Moving pixel from {source} to {target}, pixel value {img_origin[source[1], source[0]]}")
             else:
                 img[target[1], target[0]] = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
 
@@ -240,7 +245,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
                     dx = np.rint(dps_images[0,y,x,i]*(minutes_after)/(15)).astype(int)
                     dy = np.rint(dps_images[1,y,x,i]*(minutes_after)/(15)).astype(int)
                     # move pixels as a batch to same direction
-                    if dx != 0 and dy != 0:
+                    if not (dx == 0 and dy == 0):
                         x_lower, x_upper = np.maximum(0, x-batch_size), np.minimum(V.shape[1], x+batch_size+1)
                         y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(V.shape[0], y+batch_size+1)
                         for y_batch in range(y_lower, y_upper):
@@ -251,12 +256,20 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, earth_image:np.ndarray
         extrapolate_images.append(extrapolate_image)
     if show:
         for i, t in enumerate(objects):
-            plt.imshow(extrapolate_images[i]*mask, cmap="viridis")
-            plt.title(f"Extrapolated Image {minutes_after} minutes after 202403{timesDay[t]}_{times[t]}")
+            fig, axs = plt.subplots(1, 3, figsize=(16, 9))
+            axs[0].imshow(extrapolate_images[i]*mask, cmap="viridis")
+            axs[0].set_title(f"Extrapolated Image 202403{timesDay[t]}_{times[t][:2]}{str(minutes_after + int(times[t][2:4])).zfill(2)}{times[t][4:]}")
+            axs[1].imshow((V[:,:,t + 1])*mask, cmap="viridis")
+            axs[1].set_title(f"Original Image 202403{timesDay[t+1]}_{times[t+1]}")
+            axs[2].imshow((extrapolate_images[i] - V[:,:,t + 1])*mask, cmap="viridis")
+            axs[2].set_title(f"Difference, MSE: {MSE(extrapolate_images[i], V[:,:,t + 1], mask):.2f}, Baseline MSE: {MSE(V[:,:,t], V[:,:,t + 1], mask):.2f}")
             plt.tight_layout()
             plt.show()
     
     return extrapolate_images, f"202403{timesDay[t]}_{times[t][:2]}{str(minutes_after + int(times[t][2:4])).zfill(2)}{times[t][4:]}"
+
+def MSE(y_true, y_pred, mask):
+    return np.square(y_true[mask] - y_pred[mask]).sum()/len((mask == 1.0).ravel())
 
 def fill_earth_image(img, mask, earth_image):
     for y in range(img.shape[0]):
@@ -268,7 +281,7 @@ def fill_earth_image(img, mask, earth_image):
 
 if __name__ == "__main__":
     path = 'Project4/Processedfull'
-    target_days = ['0320']
+    target_days = ['0317']
     for target in target_days:
         V, timesDay, times, mask = load_images(target, path)
         earth_image = extract_groundintensity()
@@ -279,5 +292,6 @@ if __name__ == "__main__":
 
 
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
-        # print(len(interpolate_flow(dps_images, V, earth_image, timesDay, times, mask, objects=objects, show=True, n=15)))
-        print(extrapolate_flow(dps_images, V, earth_image, timesDay, times, mask, minutes_after=15, objects=objects, show=True))
+
+        print(interpolate_flow(dps_images, V, earth_image, timesDay, times, mask, objects=objects, show=True, n=15))
+        # extrapolate_flow(dps_images, V, earth_image, timesDay, times, mask, minutes_after=15, objects=objects, show=True)

@@ -60,8 +60,9 @@ for entry in file_name:
 
     dummy = (img[:,:,0]+img[:,:,1]-2*img[:,:,2])[mask].flatten()
     #standardize data
-    if np.std(dummy) != 0:
+    if np.std(dummy) != 0:                                      ####### NOTE: delete recommended (ivan)
         dummy = (dummy-np.mean(dummy))/np.std(dummy)
+    # Round to nearest hour
     if int(times_new[2:4]) > 30:
         hour = (int(times_new[:2]))+1
     else: hour = (int(times_new[:2]))
