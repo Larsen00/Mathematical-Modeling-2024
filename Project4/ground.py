@@ -48,5 +48,12 @@ def extract_groundintensity ():
 
 if __name__ == "__main__":
     x = extract_groundintensity()
+
+    plt.hist(x.flatten(), bins=20, color='blue', alpha=0.7)  # You can adjust the number of bins and color as needed
+    plt.title('Histogram of groundIntensity')
+    plt.xlabel('Intensity')
+    plt.ylabel('Frequency')
+    plt.show()
+    
     plt.imshow(x, cmap='viridis')
     plt.show()
