@@ -177,6 +177,10 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
         if mask[target[1], target[0]] == 1.0:
             if np.isnan(img[target[1], target[0]]):
                 img[target[1], target[0]] = img_origin[source[1], source[0]]
+            else:
+                img[target[1], target[0]] -= abs(img_origin[source[1], source[0]] - img[target[1], target[0]])
+                # img[target[1], target[0]] = np.minimum(img_origin[source[1], source[0]], img[target[1], target[0]])
+                
     return
 
 def predict(i, dps_images, original_image, interval_n, interval_size, batch_size, images, mask):
