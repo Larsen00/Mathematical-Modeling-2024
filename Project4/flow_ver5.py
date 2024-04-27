@@ -173,13 +173,12 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
     Return:
         Image with pixel moved
     """
-    if not (target[0] >= img.shape[1] or target[1] >= img.shape[0] or target[0] < 0 or target[1] < 0):
-        if mask[target[1], target[0]] == 1.0:
-            if np.isnan(img[target[1], target[0]]):
-                img[target[1], target[0]] = img_origin[source[1], source[0]]
-            else:
-                img[target[1], target[0]] -= abs(img_origin[source[1], source[0]] - img[target[1], target[0]])
-                # img[target[1], target[0]] = np.minimum(img_origin[source[1], source[0]], img[target[1], target[0]])
+    if not (target[0] >= img.shape[1] or target[1] >= img.shape[0] or target[0] < 0 or target[1] < 0) and mask[target[1], target[0]] == 1.0:
+        if np.isnan(img[target[1], target[0]]):
+            img[target[1], target[0]] = img_origin[source[1], source[0]]
+        else:
+            img[target[1], target[0]] -= abs(img_origin[source[1], source[0]] - img[target[1], target[0]])
+            # img[target[1], target[0]] = np.minimum(img_origin[source[1], source[0]], img[target[1], target[0]])
                 
     return
 
