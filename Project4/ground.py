@@ -3,6 +3,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
+# lav en kernel filter på ground før den retuneres
+
 def extract_groundintensity ():
     folder_path = 'Project4/processedfull'
     files_in_directory = os.listdir(folder_path)
