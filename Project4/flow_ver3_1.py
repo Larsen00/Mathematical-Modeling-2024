@@ -3,7 +3,7 @@ import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
 import os
-from Project4.load_images import load_images
+from load_images import load_images
 
 def make_dir(path:str):
     if os.path.isdir(path) == False:
@@ -246,7 +246,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
         if minutes >= 60:
             minutes -= 60
             hour += 1
-        timestamps.append(f"202403{timesDay[t]}_{str(hour).zfill(2)}{str(minutes).zfill(2)}{times[t][4:]}" )
+        timestamps.append(f"{str(hour).zfill(2)}{str(minutes).zfill(2)}{times[t][4:]}" )
         if show:
             fig, axs = plt.subplots(1, 3, figsize=(16, 9))
             axs[0].imshow(extrapolate_images[i]*mask, cmap="viridis")
@@ -257,10 +257,10 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
             axs[2].set_title(f"Difference, MSE: {MSE(extrapolate_images[i], V[:,:,t + 1], mask):.2f}, Baseline MSE: {MSE(V[:,:,t], V[:,:,t + 1], mask):.2f}")
             plt.tight_layout()
             plt.show()
-    return extrapolate_images, timestamps
+    return np.dstack(extrapolate_images), timestamps
 
 def MSE(y_true, y_pred, mask):
-    return np.square(y_true[mask] - y_pred[mask]).sum()/len((mask == 1.0).ravel())
+    return np.square(y_true[mask] - y_pred[mask]).sum()/(mask.sum())
 
 def plt_imshow(img):
     plt.imshow(img, cmap="viridis")
@@ -286,5 +286,5 @@ if __name__ == "__main__":
         dps_images = Lucas_Kanade_method(V, objects=objects)
         # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
 
-        interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True, n=3)
+        # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True, n=3)
         # extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
