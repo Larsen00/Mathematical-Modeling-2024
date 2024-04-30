@@ -1,13 +1,15 @@
-
+import os
+print(os.getcwd())
 import openpyxl
 #from flow_ver3 import *
 import glob
 import numpy as np
 import pandas as pd
-import os
+
 import matplotlib.pyplot as plt
 from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.model_selection import train_test_split
+from ridge import print_lowest_cv_result
 
 print("Loading data")
 path = 'Project4/Processedfull'
@@ -93,20 +95,23 @@ for excel_file in excel_str:
         else:
             dummy = target['SolarPower'].iloc[ind]
         Y.append(dummy.values[0])
-print('DONE')
+
 X = Xdata.T
+weights = []
 alpha_values = np.linspace(1, 100000, 1000)  # Example range from very small to large alphas
 model = RidgeCV(alphas=alpha_values, store_cv_values=True)  
+cv_vals = np.zeros((0, len(alpha_values)))
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=2)
 model.fit(X_train,Y_train)
 model.predict(X_test)
-print(model.alpha_)
-model = Ridge(alpha=model.alpha_)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=4)
+cv_vals = np.vstack((cv_vals, model.cv_values_.mean(axis=0)))    # ver.2 efficiency consideration: model.cv_values_ is a 2D array with shape (n_samples, n_alphas)
+weights.append(Y.size)
+
 model.fit(X_train,Y_train)
 Y_pred = model.predict(X_test)
 error = ((np.mean((Y_pred-Y_test)**2)))
 avg_diff = np.mean(np.abs(Y_pred-Y_test))
+print_lowest_cv_result(alpha_values,cv_vals,weights)
 
 print(np.mean(error))
 print(avg_diff)
