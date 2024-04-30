@@ -4,7 +4,6 @@ import os
 from sklearn.linear_model import RidgeCV
 from flow_ver3_1 import interpolate_flow, Lucas_Kanade_method, extrapolate_flow
 from load_images import load_images
-from sklearn.model_selection import train_test_split
 
 def remove_dates(dates, string_list):
    return [d for d in dates if d  not in string_list] ####change back return [d for d in dates if d not in string_list]
@@ -131,9 +130,17 @@ def get_training_data_and_labels(date, path, interpolation=False, time_until=Non
     return X, Y
 
 def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
-    
-     
+    """
+    Do ridge model on extrapolated data
+    ---
+    Args:
+        Given the dates, test_date, alphas, and target_time
+    Return: 
+        errors and average distances.
+    """
     date_index = dates.index(test_date)
+
+    # load data and labels from all dates other than the test date
     for i in range(date_index):
         date = dates[i]
         X_temp, Y_temp = get_training_data_and_labels(date, path, interpolation=False)
@@ -144,29 +151,37 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
         else:
             X = np.vstack([X,X_temp])
             Y = np.hstack([Y,Y_temp])
+    # load data and labels before the target_time at the test date
     X_temp, Y_temp = get_training_data_and_labels(dates[date_index], path, interpolation=False, time_until=target_time)
     X = np.vstack([X,X_temp])
     Y = np.hstack([Y,Y_temp])
+
+    # Train the ridge and select the model with the best regularization parameter alpha_
     model = RidgeCV(alphas=alphas, store_cv_values=True)
-    
     model.fit(X, Y)
     print("optimal alpha is ", model.alpha_)
     # find the optimal alpha and train again
     model = RidgeCV(model.alpha_)
     model.fit(X,Y)
     
+    # Do extrapolation from the target_time of the test date, and predict the power
     V, timesDay, times, mask = load_images(test_date, path)
     print(timesDay, times)
-    # Define how many objects subject to calculating optical flow
+    
+    # Define how many objects subject to calculating optical flow(from the)
     time_index = len(times[times <= target_time]) - 1     # last known time index
-    objects=range(time_index, len(times))
+    objects = range(time_index, len(times))
     dps_images = Lucas_Kanade_method(V, objects=objects)
     minutes_after = 15
     V_extrapolation, timestamps = extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=minutes_after, objects=objects, show=False)
+
+    # For every extrapolated image, predict the power and register the error
     errors = []
     average_distances = []
     for i in range(V_extrapolation.shape[2]):
-        y_prediction = model.predict(np.expand_dims(V_extrapolation[:,:,i][mask], 0))
+        y_prediction = model.predict(np.expand_dims(V_extrapolation[:,:,i][mask], 0))   # special purpose, the input should be a one row long 2D array
+
+        # get the true power from the excel file
         excel_file = f'{path}/{test_date}.xlsx'
         excel_data = pd.read_excel(excel_file, usecols="A,F").values    # this is a numpy array first col with timestamp format, second col with numbers
         excel_times, excel_power = return_time_and_power_from_excel_data(excel_data)
@@ -174,7 +189,6 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
         indices = np.where(excel_times == true_time)[0] # this is the index of the time in the excel file in a array, if there are mutiple values,then there are time duplicates
         y_true = excel_power[indices]
         
-
         error = MSE(y_prediction, y_true)
         errors.append(error)
 
@@ -185,7 +199,7 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
         print(f"Average distance at time {true_time} is {average_distance}")
         
         # append new image to the training data
-        if i != V_extrapolation.shape[2] -1:    # prevent overflow
+        if i != V_extrapolation.shape[2] - 1:    # prevent overflow
             X, Y = np.vstack([X, np.expand_dims(V[:,:,time_index + i + 1][mask], axis=0)]), np.hstack([Y, y_true])
             model.fit(X,Y)
     
