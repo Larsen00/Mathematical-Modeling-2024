@@ -11,7 +11,7 @@ def load_images(target:str, path:str) -> np.ndarray:
         target: List of dates to load images from
         path: Path to the directory containing the images
     Return:
-        V: 3D array of images (y, x, t)
+        V, timesDay, times, mask
     """
     # Allocate memory and load image data
     times = []
@@ -53,7 +53,7 @@ def load_images(target:str, path:str) -> np.ndarray:
         ims.append(dummy)
 
         # NOTE Does it make sense to make optical between days? dates.index(entry[ind+6:ind+8])
-        print(f"Progress: {(i+1)/len(file_name)*100:.2f}%", end="\r")
+        # print(f"Progress: {(i+1)/len(file_name)*100:.2f}%", end="\r")
         
     timesDay = np.array(timesDay)
     times = np.array(times)
