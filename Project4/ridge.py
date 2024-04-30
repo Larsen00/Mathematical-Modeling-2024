@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 from sklearn.linear_model import RidgeCV
-from flow_ver3 import interpolate_flow, Lucas_Kanade_method
+from Project4.flow_ver3_1 import interpolate_flow, Lucas_Kanade_method
+from Project4.load_images import load_images
 
 
 def sort_dates(dates):
@@ -60,7 +61,7 @@ def get_training_data_and_labels(date, path, interpolation=False):
     """
     given one date, return the training data and labels.
     """
-    from load_images import load_images
+    
     # Find all image files(V has (y,x,t) dimensions)
     V, timesDay, times, mask = load_images(date, path)
     times = round_seconds(times)
