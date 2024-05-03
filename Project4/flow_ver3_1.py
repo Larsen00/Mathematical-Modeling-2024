@@ -1,4 +1,3 @@
-# earth image removed
 import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
@@ -6,6 +5,15 @@ import os
 from load_images import load_images
 
 def make_dir(path:str):
+    """
+    Create a directory at the specified path if it doesn't already exist.
+
+    Parameters:
+    path (str): The path of the directory to be created.
+
+    Returns:
+    None
+    """
     if os.path.isdir(path) == False:
         os.mkdir(path)
     return
@@ -23,10 +31,8 @@ def Lucas_Kanade_method(V:np.ndarray, sigma:float=1, n:int=3, stride:int=1, obje
     Return:
         Results of optical flow in the form of a 4D array (2, V.shape[0], V.shape[1], V.shape[2])
     """
-    # Gaussian filter
-    # sigma = int(input("Enter the sigma value for the Gaussian filter: "))
+    # Apply gaussian filter on each axis
     print(f"Creating Gaussian filter with sigma = {sigma}...")
-    # gaussian_V = scipy.ndimage.gaussian_filter(V, sigma, order=1)
     Vy_gaussian = scipy.ndimage.gaussian_filter(V, sigma, order=1, axes=0)
     Vx_gaussian = scipy.ndimage.gaussian_filter(V, sigma, order=1, axes=1)
     Vt_gaussian = scipy.ndimage.gaussian_filter(V, sigma, order=1, axes=2)
@@ -39,6 +45,7 @@ def Lucas_Kanade_method(V:np.ndarray, sigma:float=1, n:int=3, stride:int=1, obje
     print("\tPreallocating memory...")
     dps_images = np.zeros((2, V.shape[0], V.shape[1], len(objects)))
     print("\tPreallocating memory done!")
+    # Perform Lucas-Kanade
     for i, t in enumerate(objects):
         dps_image = np.zeros((2, V.shape[0], V.shape[1]))
         for y in range(0,V.shape[0],stride):
@@ -70,7 +77,7 @@ def plot_with_noise_filtering(dps_images:np.ndarray, V:np.ndarray, timesDay, tim
     if show == False:
         make_dir(f"{path}/_static")
     print("Filtering out noises and plot...")
-    # plot with filtering out noises
+    # plot with noises filtered out 
     dps_images_filtered = dps_images.copy()
     # for t in range(V.shape[2]):
     # Load binary mask outlining Denmark
@@ -78,6 +85,7 @@ def plot_with_noise_filtering(dps_images:np.ndarray, V:np.ndarray, timesDay, tim
     # Register the number of dimensions
     n_y_dims, n_x_dims, n_t_dims = dps_images_filtered.shape[1:4]
     print(f"Number of dimensions: {n_y_dims}x{n_x_dims}x{n_t_dims}")
+    # Apply threshold
     for t in range(n_t_dims):
         plt.imshow(V[:,:,t]*mask, cmap="gray")
         for y in range(0,n_y_dims,stride):
@@ -107,6 +115,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
         V: 3D array of images after gaussian filtering (y, x, t)
         timesDay: List of dates
         times: List of times
+        batch_size: Size of the batch of pixels around each pixel which will be moved with each individual pixel
         mask: Binary mask outlining Denmark
         n: Number of interpolated images(include last image)
         objects: List of objects to interpolate
@@ -114,23 +123,20 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
     Return:
         return interpolated images from based image to the last interpolated image, in one 3D array.
     """
-    
-    # if show == False:
-    #     make_dir(f"{path}/_interpolated")
 
     if objects == []:
         objects = range(V.shape[2])
 
     # interpolate flow
-    # interpolate_imagess = []
     V_interpolation = np.zeros((V.shape[0], V.shape[1], n*len(objects)))
     timestampss = []
     l = 0   # l is a variable to increment every time an image is added to V_interpolation
+    #Interpolation starting here:
     for i, t in enumerate(objects):
-        interpolate_images = []
+        interpolate_images = [] #Container for the current interpolated image 
         timestamps = []
-        original_image = V[:,:,t]
-        V_interpolation[:,:,l] = original_image
+        original_image = V[:,:,t] #Iterate across all original images
+        V_interpolation[:,:,l] = original_image #Make sure that the original images is also part of the final interpolated dataset. 
         l += 1
         for j in range(n-1):
             interpolate_image = np.zeros_like(original_image).copy()
@@ -149,6 +155,7 @@ def interpolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
                             y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(V.shape[0], y+batch_size+1)
                             for y_batch in range(y_lower, y_upper):
                                 for x_batch in range(x_lower, x_upper):
+                                    #Move pixel according to displacement
                                     move_pixel(interpolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
             # Fill nan values from the earth image
             fill_image(interpolate_image, mask, V[:,:,t])
@@ -183,14 +190,16 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
     ---
     Args:
         img: 2D array of image
+        img_origin: 2D array of original image
         source: (x, y) coordinate of source pixel
         target: (x, y) coordinate of target pixel
     Return:
-        Image with pixel moved
+        None
     """
     if not (target[0] >= img.shape[1] or target[1] >= img.shape[0] or target[0] < 0 or target[1] < 0):
         if mask[target[1], target[0]] == 1.0:
             if np.isnan(img[target[1], target[0]]):
+                #Move pixel to target
                 img[target[1], target[0]] = img_origin[source[1], source[0]]
                 # print(f"Moving pixel from {source} to {target}, pixel value {img_origin[source[1], source[0]]}")
             # else:
@@ -207,13 +216,14 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
         timesDay: List of dates
         times: List of times
         mask: Binary mask outlining Denmark
-        base: Base image to extrapolate
         minutes_after: Minutes after the base image
+        batch_size: Size of the batch of pixels around each pixel which will be moved with each individual pixel
+        objects: List of objects to extrapolate
         show: Whether to show the plot
     Return:
-        List of extrapolated images
+        List of extrapolated images with timestamps
     """
-    # interpolate flow
+    # extrapolate flow
     extrapolate_images = []
     for i, t in enumerate(objects):
         original_image = V[:,:,t]
@@ -225,7 +235,7 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
                 if (dps_images[0,y,x,i] == 0 or dps_images[1,y,x,i] == 0):
                     continue
                 else:
-                    # move pixel
+                    # calculate movement in each direction
                     dx = np.rint(dps_images[0,y,x,i]*(minutes_after)/(15)).astype(int)
                     dy = np.rint(dps_images[1,y,x,i]*(minutes_after)/(15)).astype(int)
                     # move pixels as a batch to same direction
@@ -259,15 +269,58 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
             plt.show()
     return np.dstack(extrapolate_images), timestamps
 
+import numpy as np
+
 def MSE(y_true, y_pred, mask):
-    return np.square(y_true[mask] - y_pred[mask]).sum()/(mask.sum())
+    """
+    Calculates the mean squared error (MSE) between the true values and predicted values.
+
+    Parameters:
+    - y_true (ndarray): Array of true values.
+    - y_pred (ndarray): Array of predicted values.
+    - mask (ndarray): Boolean mask to only consider pixels representing Danish soil.
+
+    Returns:
+    - mse (float): Mean squared error between the true and predicted values.
+    """
+
+    # Calculate the squared difference between true and predicted values
+    squared_diff = np.square(y_true[mask] - y_pred[mask])
+
+    # Sum the squared differences and divide by the number of masked values
+    mse = squared_diff.sum() / mask.sum()
+
+    return mse
+
+import matplotlib.pyplot as plt
 
 def plt_imshow(img):
+    """
+    Display an image using matplotlib's imshow function.
+
+    Parameters:
+    img (numpy.ndarray): The image to be displayed.
+
+    Returns:
+    None
+    """
+    # Display the image using the "viridis" colormap
     plt.imshow(img, cmap="viridis")
     plt.show()
     return
 
 def fill_image(img, mask, background_image):
+    """
+    Fill the NaN values in the image with corresponding values from the background image.
+
+    Parameters:
+    - img (ndarray): The image to be filled.
+    - mask (ndarray): Boolean mask to only consider pixels representing Danish soil.
+    - background_image (ndarray): The background image.
+
+    Returns:
+    None
+    """
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             if np.isnan(img[y,x]) and mask[y,x] == 1.0:

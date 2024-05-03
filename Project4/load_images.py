@@ -11,7 +11,10 @@ def load_images(target:str, path:str) -> np.ndarray:
         target: List of dates to load images from
         path: Path to the directory containing the images
     Return:
-        V, timesDay, times, mask
+        V: Images
+        timesDay: Dates
+        times: time of day
+        mask: boolean mask of danish soil
     """
     # Allocate memory and load image data
     times = []
