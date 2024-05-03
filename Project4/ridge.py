@@ -4,6 +4,11 @@ import os
 from sklearn.linear_model import RidgeCV
 from flow_ver3_1 import interpolate_flow, Lucas_Kanade_method, extrapolate_flow
 from load_images import load_images
+import matplotlib.pyplot as plt
+from datetime import datetime
+import matplotlib.dates as mdates
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 def remove_dates(dates, string_list):
    return [d for d in dates if d  not in string_list] ####change back return [d for d in dates if d not in string_list]
@@ -129,7 +134,7 @@ def get_training_data_and_labels(date, path, interpolation=False, time_until=Non
         
     return X, Y
 
-def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
+def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str, interpolation=False):
     """
     Do ridge model on extrapolated data
     ---
@@ -143,7 +148,7 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
     # load data and labels from all dates other than the test date
     for i in range(date_index):
         date = dates[i]
-        X_temp, Y_temp = get_training_data_and_labels(date, path, interpolation=False)
+        X_temp, Y_temp = get_training_data_and_labels(date, path, interpolation=interpolation)
         print(f"Date: {date}, data shape: {X_temp.shape}, label shape: {Y_temp.shape}")
         if i == 0:
             X = X_temp
@@ -152,17 +157,21 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
             X = np.vstack([X,X_temp])
             Y = np.hstack([Y,Y_temp])
     # load data and labels before the target_time at the test date
-    X_temp, Y_temp = get_training_data_and_labels(dates[date_index], path, interpolation=False, time_until=target_time)
+    X_temp, Y_temp = get_training_data_and_labels(dates[date_index], path, interpolation=interpolation, time_until=target_time)
+
     X = np.vstack([X,X_temp])
     Y = np.hstack([Y,Y_temp])
 
+    scaler = StandardScaler()
+    X_standardized = scaler.fit_transform(X)
+
     # Train the ridge and select the model with the best regularization parameter alpha_
     model = RidgeCV(alphas=alphas, store_cv_values=True)
-    model.fit(X, Y)
+    model.fit(X_standardized, Y)
     print("optimal alpha is ", model.alpha_)
     # find the optimal alpha and train again
     model = RidgeCV(model.alpha_)
-    model.fit(X,Y)
+    model.fit(X_standardized,Y)
     
     # Do extrapolation from the target_time of the test date, and predict the power
     V, timesDay, times, mask = load_images(test_date, path)
@@ -178,9 +187,13 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
     # For every extrapolated image, predict the power and register the error
     errors = []
     average_distances = []
+    y_prediction_list = []
+    y_true_list = []
+    true_time_list = []
     for i in range(V_extrapolation.shape[2]):
-        y_prediction = model.predict(np.expand_dims(V_extrapolation[:,:,i][mask], 0))   # special purpose, the input should be a one row long 2D array
-
+        X_test_standardized = scaler.transform(np.expand_dims(V_extrapolation[:,:,i][mask], 0)) # special purpose, the input should be a one row long 2D array
+        y_prediction = model.predict(X_test_standardized)
+        y_prediction_list.append(y_prediction)
         # get the true power from the excel file
         excel_file = f'{path}/{test_date}.xlsx'
         excel_data = pd.read_excel(excel_file, usecols="A,F").values    # this is a numpy array first col with timestamp format, second col with numbers
@@ -188,7 +201,8 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
         true_time = round_seconds([timestamps[i]])[0]   # strange but acceptable
         indices = np.where(excel_times == true_time)[0] # this is the index of the time in the excel file in a array, if there are mutiple values,then there are time duplicates
         y_true = excel_power[indices]
-        
+        y_true_list.append(y_true)
+
         error = MSE(y_prediction, y_true)
         errors.append(error)
 
@@ -197,13 +211,15 @@ def ridge_model_on_extrapolated_data(dates, test_date, alphas, target_time:str):
 
         print(f"Error at time {true_time} is {error}")
         print(f"Average distance at time {true_time} is {average_distance}")
+        true_time_list.append(true_time)
         
         # append new image to the training data
         if i != V_extrapolation.shape[2] - 1:    # prevent overflow
             X, Y = np.vstack([X, np.expand_dims(V[:,:,time_index + i + 1][mask], axis=0)]), np.hstack([Y, y_true])
-            model.fit(X,Y)
+            X_standardized = scaler.fit_transform(X)
+            model.fit(X_standardized,Y)
     
-    return errors, average_distances
+    return errors, average_distances, y_prediction_list, y_true_list, true_time_list
 
 def MSE(Y_pred, Y_true):
     return np.mean((Y_pred-Y_true)**2)
@@ -215,11 +231,24 @@ if __name__ == '__main__':
     path = 'Project4/Processedfull'
     files_in_directory = os.listdir(path)
     dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
-    dates_to_remove =['20240306','20240307','20240308','20240309','20240310','20240311','20240312','20240313','20240314','20240317','20240318','20240319','20240326','20240329','20240331']
-    dates_remain = remove_dates(dates, dates_to_remove)
-    sort_dates(dates_remain)
     sort_dates(dates)
-    print(dates_remain)
+
+    time_until = "063000"
+    number_of_alphas = 1000
+    alpha_vals = np.logspace(-6, 6, number_of_alphas)
+    test_date= '20240306'
+    errors, average_distances, y_prediction_list, y_true_list, true_time_list = ridge_model_on_extrapolated_data(dates, test_date, alpha_vals, time_until)
+    errors_interpolation, average_distances_interpolation, y_prediction_list_interpolation, _, _ = ridge_model_on_extrapolated_data(dates, test_date, alpha_vals, time_until, interpolation=True)
+    np.save('errors.npy', errors)
+    np.save('average_distances.npy', average_distances)
+    np.save('y_prediction_list.npy', y_prediction_list)
+    np.save('y_true_list.npy', y_true_list)
+    np.save('true_time_list.npy', true_time_list)
+    np.save('errors_interpolation.npy', errors_interpolation)
+    np.save('average_distances_interpolation.npy', average_distances_interpolation)
+    np.save('y_prediction_list_interpolation.npy', y_prediction_list_interpolation)   
+    pass
+        
 
     # for i, date in enumerate(dates_remain):
     #     X_temp, Y_temp = get_training_data_and_labels(date, path, interpolation=False)
@@ -255,12 +284,3 @@ if __name__ == '__main__':
     # Y_baseline = np.mean(Y_train)
     # error_baseline = (np.mean((np.ones_like(Y_test)*Y_baseline*-Y_test)**2))
     # print(f'MSE of baseline: {error_baseline}')
-
-    time_until = "120000"
-    number_of_alphas = 1000
-    alpha_vals = np.logspace(-4, 4, number_of_alphas)
-    test_date= dates_to_remove[0]
-    print(ridge_model_on_extrapolated_data(dates, test_date, alpha_vals, time_until))
-    
-    pass
-        
