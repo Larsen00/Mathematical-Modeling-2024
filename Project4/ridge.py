@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import RidgeCV, Ridge
 from flow_ver3_1 import interpolate_flow, Lucas_Kanade_method, extrapolate_flow
 from load_images import load_images
 import matplotlib.pyplot as plt
@@ -9,6 +9,18 @@ from datetime import datetime
 import matplotlib.dates as mdates
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+
+def simple_mean_interpolation(X1, X2):
+    return (X1 + X2) / 2
+
+def get_interpolated_data_and_labels(X, Y):
+    n = X.shape[0] - 1
+    X_interpolated = np.zeros((n, X.shape[1]))
+    Y_interpolated = np.zeros(n)
+    for i in range(n):
+        X_interpolated[i, :] = simple_mean_interpolation(X[i, :], X[i + 1, :])
+        Y_interpolated[i] = simple_mean_interpolation(Y[i], Y[i + 1])
+    return X_interpolated, Y_interpolated
 
 def remove_dates(dates, string_list):
    return [d for d in dates if d  not in string_list] ####change back return [d for d in dates if d not in string_list]
@@ -227,12 +239,136 @@ def MSE(Y_pred, Y_true):
 def averge_distance(Y_pred, Y_true):
     return np.mean((Y_pred-Y_true))
 
+def model_performance_test(dates):
+    print("model performance test")
+    alphas = np.logspace(-6, 6, 200)
+    ################Residuals for model without interpolation#################
+    # same result as get_training_data_and_labels
+    X = np.load("X.npy")
+    Y = np.load("Y.npy")
+
+    scaler = StandardScaler()
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
+
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+
+    # Create the RidgeCV model
+    m = RidgeCV(alphas=alphas)
+
+    # Fit the model to the training data
+    m.fit(X_train, Y_train)
+
+    # The optimal alpha value
+    optimal_alpha = m.alpha_
+    print(f'Optimal alpha: {optimal_alpha}')
+
+    # Now create and fit the Ridge regression model with the optimal alpha
+    model = Ridge(alpha=optimal_alpha)
+    model.fit(X_train, Y_train)
+    Y_prediction = model.predict(X_test)
+    residuals = Y_prediction - Y_test
+    print(np.mean(residuals**2))
+    plt.scatter(Y_prediction, residuals)
+    plt.xlabel('Predicted values')
+    plt.ylabel('Residuals')
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title("Residuals for model without interpolation")
+    plt.savefig("Residuals_model_without_interpolation.svg")
+    plt.clf()
+    ##############Residuals for model with simple weighted interpolation"###############
+    X = np.load("X.npy")
+    Y = np.load("Y.npy")
+
+    scaler = StandardScaler()
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
+
+    X_interpolated, Y_interpolated = get_interpolated_data_and_labels(X, Y)
+    X_train = scaler.fit_transform(np.vstack((X_train, X_interpolated)))
+    Y_train = np.hstack((Y_train, Y_interpolated))
+
+    X_test = scaler.transform(X_test)
+
+    # Create the RidgeCV model
+    m = RidgeCV(alphas=alphas)
+
+    # Fit the model to the training data
+    m.fit(X_train, Y_train)
+
+    # The optimal alpha value
+    optimal_alpha = m.alpha_
+    print(f'Optimal alpha: {optimal_alpha}')
+
+    # Now create and fit the Ridge regression model with the optimal alpha
+    model = Ridge(alpha=optimal_alpha)
+    model.fit(X_train, Y_train)
+    Y_prediction = model.predict(X_test)
+    residuals = Y_prediction - Y_test
+    print(np.mean(residuals**2))
+    plt.scatter(Y_prediction, residuals)
+    plt.xlabel('Predicted values')
+    plt.ylabel('Residuals')
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title("Residuals for model with simple weighted interpolation")
+    plt.savefig("Residuals_model_with_simple_weighted_interpolation.svg")
+    plt.clf()
+    ##############Residuals model with optical flow interpolation#############
+    
+    # it takes too long to run the following code
+    print("Warning: the following code takes too long to run")
+    scaler = StandardScaler()
+    for i, date in enumerate(dates):
+        X_temp, Y_temp = get_training_data_and_labels(date, path, interpolation=True)
+        print(f"Date: {date}, data shape: {X_temp.shape}, label shape: {Y_temp.shape}")
+        if i == 0:
+            X = X_temp
+            Y = Y_temp
+        else:
+            X = np.vstack([X,X_temp])
+            Y = np.hstack([Y,Y_temp])
+    
+    
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
+    
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    # Create the RidgeCV model
+    m = RidgeCV(alphas=alphas)
+
+    # Fit the model to the training data
+    m.fit(X_train, Y_train)
+
+    # The optimal alpha value
+    optimal_alpha = m.alpha_
+    print(f'Optimal alpha: {optimal_alpha}')
+
+    # Now create and fit the Ridge regression model with the optimal alpha
+    model = Ridge(alpha=optimal_alpha)
+    model.fit(X_train, Y_train)
+    Y_prediction = model.predict(X_test)
+    residuals = Y_prediction - Y_test
+    print(np.mean(residuals**2))
+    plt.scatter(Y_prediction, residuals)
+    plt.xlabel('Predicted values')
+    plt.ylabel('Residuals')
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title("Residuals model with optical flow interpolation")
+    plt.savefig("Residuals_model_with_optical_flow_interpolation.svg")
+    return
+
 if __name__ == '__main__':
     path = 'Project4/Processedfull'
     files_in_directory = os.listdir(path)
     dates = [file.replace('.xlsx','') for file in files_in_directory if file.endswith('.xlsx')]
     sort_dates(dates)
-
+    
+    # model_performance_test(dates)
+   
     time_until = "063000"
     number_of_alphas = 1000
     alpha_vals = np.logspace(-6, 6, number_of_alphas)
