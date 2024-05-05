@@ -3,6 +3,7 @@ import scipy.ndimage
 import matplotlib.pyplot as plt
 import os
 from load_images import load_images
+import scipy.ndimage as ndimage
 
 def make_dir(path:str):
     """
@@ -206,7 +207,116 @@ def move_pixel(img, img_origin, mask, source, target) -> None:
             #     img[target[1], target[0]] = np.minimum(img[target[1], target[0]], img_origin[source[1], source[0]]) - np.abs(img[target[1], target[0]] - img_origin[source[1], source[0]])
     return
 
-def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask, minutes_after:int=15, batch_size:int=0, objects=[], show:bool=False) -> list:
+def fill_image_with_avg(interpolate_image, mask, kernel_size=10, use_global_avg=False):
+    """
+    Fills NaN values in the given image using average values from a specified neighborhood defined by kernel_size.
+    This operation is performed only in the areas specified by the mask.
+
+    Parameters:
+        interpolate_image (np.array): The image array containing NaN values to fill.
+        mask (np.array): A boolean array where True indicates areas that should be considered for NaN filling.
+        kernel_size (int): The size of the neighborhood to consider for the local average calculation.
+        use_global_avg (bool): If True, use the global average of the image to fill any remaining NaNs after local avg filling.
+
+    Returns:
+        None; the interpolate_image is modified in place.
+    """
+    
+    # Handle NaNs: Create a masked array that ignores NaNs for averaging
+    masked_image = np.ma.array(interpolate_image, mask=np.isnan(interpolate_image))
+    
+    # Apply uniform filter to find the neighborhood average on the valid (non-NaN) parts of the image
+    local_avg = ndimage.uniform_filter(masked_image.filled(0), size=kernel_size, mode='constant', cval=0)
+    
+    # Count of non-NaN entries within each filter area to correct areas with few non-NaNs contributing to the average
+    count_non_nan = ndimage.uniform_filter(~masked_image.mask, size=kernel_size, mode='constant', cval=0)
+    
+    # Calculate corrected local average
+    corrected_avg = local_avg / count_non_nan
+    
+    # Replace NaNs where necessary: Only in masked areas
+    fill_positions = np.isnan(interpolate_image) & mask
+    interpolate_image[fill_positions] = corrected_avg[fill_positions]
+
+    # If global average is needed and any NaN remains
+    if use_global_avg and np.isnan(interpolate_image).any():
+        # Calculate the global average from the valid entries in the image
+        global_avg = np.nanmean(interpolate_image)
+        # Fill any remaining NaNs with the global average
+        interpolate_image[np.isnan(interpolate_image)] = global_avg
+
+
+
+def fill_image_with_max(interpolate_image, mask, kernel_size=10, use_global_max=False):
+
+    temp_image = np.where(np.isnan(interpolate_image), -np.inf, interpolate_image)
+    
+    # Apply maximum filter to find the neighborhood maximum
+    neighborhood_max = ndimage.maximum_filter(temp_image, size=kernel_size, mode='constant', cval=np.nan)
+
+    # Only fill NaNs where the mask is True
+    fill_positions = np.isnan(interpolate_image) & mask
+    
+    # Replace NaNs with the maximum value from their neighborhood
+    interpolate_image[fill_positions] = neighborhood_max[fill_positions]
+    
+    # Check if any NaNs remain and use_global_max is set to True
+    if use_global_max and np.isnan(interpolate_image).any():
+        # Calculate the global maximum from the valid entries in the image
+        global_max = np.nanmax(interpolate_image)
+        # Fill any remaining NaNs with the global maximum
+        interpolate_image[np.isnan(interpolate_image)] = global_max
+    
+
+def predict(i, dps_images, original_image, interval_n, interval_size, batch_size, mask, fill_method):
+    next_image = np.zeros_like(original_image).copy()
+    next_image[:] = np.nan
+    same = 0
+    for y in range(dps_images.shape[1]):
+        for x in range(dps_images.shape[2]):
+            if (dps_images[0,y,x,i] == 0 or dps_images[1,y,x,i] == 0):
+                continue
+            else:
+                # move pixel
+                dx = np.rint(dps_images[0,y,x,i]*interval_n/(interval_size)).astype(int)
+                dy = np.rint(dps_images[1,y,x,i]*interval_n/(interval_size)).astype(int)
+                
+                # move pixels as a batch to same direction
+                x_lower, x_upper = np.maximum(0, x-batch_size), np.minimum(original_image.shape[1], x+batch_size+1)
+                y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(original_image.shape[0], y+batch_size+1)
+                
+                if dx == 0 and dy == 0:
+                    same += 1
+                    
+                for y_batch in range(y_lower, y_upper):
+                    for x_batch in range(x_lower, x_upper):
+                        move_pixel(next_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
+    
+    # # Create a masked array where True marks NaNs in the original image
+    # nan_mask = np.isnan(next_image)
+
+    # # Use logical AND to find where both the mask is True and the image is NaN
+    # masked_nans = nan_mask & mask
+
+    # # Count the True values in the masked_nans array
+    # count = np.count_nonzero(masked_nans) + 1
+    # tot = np.count_nonzero(mask)
+    # print(f'The number of pixels is same {count} out of {tot} which is {count/tot}% ')
+
+   
+    # fill nans
+    if fill_method == 1:
+        fill_image_with_max(next_image, mask, 20, True)
+    elif fill_method == 2:
+        fill_image_with_avg(next_image, mask, 20, True)
+    elif fill_method == 3:
+        fill_image(next_image, mask, original_image)
+    else :
+        raise Exception("fill method dont exist")
+    
+    
+    return next_image
+def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask, minutes_after:int=15, batch_size:int=0, objects=[], show:bool=False, fill_method:int=1) -> list:
     """
     extrapolate the flow between two images.
     ---
@@ -227,26 +337,10 @@ def extrapolate_flow(dps_images:np.ndarray, V:np.ndarray, timesDay, times, mask,
     extrapolate_images = []
     for i, t in enumerate(objects):
         original_image = V[:,:,t]
-        # plt_imshow(original_image*mask)
-        extrapolate_image = np.zeros_like(original_image).copy()
-        extrapolate_image[:] = np.nan
-        for y in range(dps_images.shape[1]):
-            for x in range(dps_images.shape[2]):
-                if (dps_images[0,y,x,i] == 0 or dps_images[1,y,x,i] == 0):
-                    continue
-                else:
-                    # calculate movement in each direction
-                    dx = np.rint(dps_images[0,y,x,i]*(minutes_after)/(15)).astype(int)
-                    dy = np.rint(dps_images[1,y,x,i]*(minutes_after)/(15)).astype(int)
-                    # move pixels as a batch to same direction
-                    if not (dx == 0 and dy == 0):
-                        x_lower, x_upper = np.maximum(0, x-batch_size), np.minimum(V.shape[1], x+batch_size+1)
-                        y_lower, y_upper = np.maximum(0, y-batch_size), np.minimum(V.shape[0], y+batch_size+1)
-                        for y_batch in range(y_lower, y_upper):
-                            for x_batch in range(x_lower, x_upper):
-                                move_pixel(extrapolate_image, original_image, mask, (x_batch, y_batch), (x_batch+dx, y_batch+dy))
+        
         # Fill nan values from the earth image
-        fill_image(extrapolate_image, mask, V[:,:,t])
+        # fill_image(extrapolate_image, mask, V[:,:,t])
+        extrapolate_image = predict(i, dps_images, original_image, minutes_after, 15, 0, mask, fill_method)
         extrapolate_images.append(extrapolate_image)
         
     timestamps = []
@@ -328,16 +422,92 @@ def fill_image(img, mask, background_image):
             elif mask[y,x] == 0.0:
                 img[y,x] = 0.0
 
-if __name__ == "__main__":
-    path = 'Project4/Processedfull'
-    target_days = ['0317']
-    for target in target_days:
-        V, timesDay, times, mask = load_images(target, path)
-        print(timesDay, times)
-        # Define how many objects subject to calculating optical flow
-        objects=range(5)
-        dps_images = Lucas_Kanade_method(V, objects=objects)
-        # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
 
-        # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True, n=3)
-        # extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
+def cal_MSE_forall():
+    path = 'Processedfull'
+    files_in_directory = os.listdir(path)
+    dates = [file.replace('.xlsx', '') for file in files_in_directory if file.endswith('.xlsx')]
+    mse_all_pred_max = []
+    mse_all_pred_avg = []
+    mse_all_pred_sim = []
+    mse_all_last = []
+    mse_all_toLast = []
+    
+    for target in dates:
+        V, timesDay, times, mask = load_images(target, path)
+        objects = range(V.shape[2] - 1)
+        dps_images = Lucas_Kanade_method(V, objects=objects)
+    
+        # E_max, _ = extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=False, fill_method=1)
+        # E_avg, _ = extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=False, fill_method=2)
+        E_sim, _ = extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=False, fill_method=3)
+    
+        # mse_pred_max = []
+        # mse_pred_avg = []
+        mse_pred_sim = []
+        mse_last = []
+        mse_toLast = []
+    
+        for i in range(E_sim.shape[2]):
+            # mse_pred_max.append(MSE(V[:, :, i+1], E_max[:, :, i], mask))
+            # mse_pred_avg.append(MSE(V[:, :, i+1], E_avg[:, :, i], mask))
+            mse_pred_sim.append(MSE(V[:, :, i+1], E_sim[:, :, i], mask))
+            mse_last.append(MSE(V[:, :, i+1], V[:, :, i], mask))
+            mse_toLast.append(MSE(V[:, :, i], E_sim[:, :, i], mask))
+    
+        # mse_all_pred_max.append(np.mean(mse_pred_max))
+        # mse_all_pred_avg.append(np.mean(mse_pred_avg))
+        mse_all_pred_sim.append(np.mean(mse_pred_sim))
+        mse_all_last.append(np.mean(mse_last))
+        mse_all_toLast.append(np.mean(mse_toLast))
+    
+        # print(f"Mean squared error for max fill pred img {target}: {np.mean(mse_pred_max)}")
+        # print(f"Mean squared error for avg fill pred img {target}: {np.mean(mse_pred_avg)}")
+        print(f"Mean squared error for sim fill pred img {target}: {np.mean(mse_pred_sim)}")
+        print(f"Mean squared error for last img {target}: {np.mean(mse_last)}")
+    
+
+    # Assume x and MSE data arrays are defined
+    x = [day[6:8] for day in dates]  # Extract day from date string assuming 'dates' is defined
+    
+    plt.figure(figsize=(10, 6))  # Adjust figure size to your preference
+    plt.plot(x, mse_all_pred_sim, label='Predicted to Validation Image', marker='o', linestyle='-', markersize=8)
+    plt.plot(x, mse_all_last, label='Original to Validation Image', marker='o', linestyle='-', markersize=8)
+    plt.plot(x, mse_all_toLast, label='Predicted to Original Image', marker='o', linestyle='-', markersize=8)
+    
+    # Setting a larger title and customizing legend
+    plt.title('Comparison of MSE when Extrapolating Images', fontsize=16)  # Larger title
+    plt.xlabel('Day in March', fontsize=14)
+    plt.ylabel('Mean of MSE', fontsize=14)
+    
+    # Adjusting ticks for better readability
+    plt.xticks(rotation=45, fontsize=12)
+    plt.yticks(fontsize=12)
+    
+    # Enhancing the legend
+    plt.legend(fontsize=12, title='Legend', title_fontsize='13', shadow=True, fancybox=True)
+    
+    plt.grid(True)
+    plt.tight_layout()  # Adjust layout to make room for the rotated x-axis labels
+    plt.show()
+
+
+
+
+
+if __name__ == "__main__":
+
+    
+
+    # path = 'Project4/Processedfull'
+    # target_days = ['0317']
+    # for target in target_days:
+    #     V, timesDay, times, mask = load_images(target, path)
+    #     print(timesDay, times)
+    #     # Define how many objects subject to calculating optical flow
+    #     objects=range(5)
+    #     dps_images = Lucas_Kanade_method(V)
+    #     # plot_with_noise_filtering(dps_images, V, timesDay, times, mask, show=False)
+
+    #     # interpolate_flow(dps_images, V, timesDay, times, mask, objects=objects, show=True, n=3)
+    #     # extrapolate_flow(dps_images, V, timesDay, times, mask, minutes_after=15, objects=objects, show=True)
